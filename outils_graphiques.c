@@ -62,7 +62,7 @@ int afficher_txt (char txt[], int x, int y, int longueur_max, TTF_Font* police, 
 				- couleur = la couleur du texte
 				- rend = le renderer où s'affichera le texte ou NULL si on ne veut pas l'afficher */
 {
-	SDL_Surface* surface = TTF_RenderUTF8_Solid_Wrapped(police, txt, couleur, longueur_max);
+	SDL_Surface* surface = TTF_RenderUTF8_Blended_Wrapped(police, txt, couleur, longueur_max); //Utiliser "blended" plutôt que "Solid" rend le txt bcp plus beau!!! (probablement à cause que je render avec du alpha blending...)
 	SDL_Rect rect = {x, y, surface->w, surface->h};
 	
 	if (rend != NULL)
