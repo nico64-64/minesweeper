@@ -1,10 +1,6 @@
 #include <stdio.h>
 #include <time.h>
-#include "outils_graphiques.c"
-
-
-//Macros:
-#define VERSION "0.1" //version du programme
+#include "reglages.c"
 
 
 //Structs & enums:
@@ -50,70 +46,46 @@ enum zone
 };
 
 
-//Variables globales liées à SDL et au graphisme:
-SDL_Window* fenetre; //la fenêtre de l'application
-SDL_Renderer* rend; //le renderer utilisé par l'application
-TTF_Font* police; //la police utilisée par l'application
-SDL_Cursor* curseur_normal; //un curseur pointeur bien ordinaire...
-SDL_Cursor* curseur_txt; //un curseur en forme de "I" pour éditer du texte
-int xmax = 1000; //largeur de la fenêtre
-int ymax = 700; //hauteur de la fenêtre
-SDL_Color fond = blanc; //couleur de l'arrière-plan de la fenêtre
-SDL_Color couleur_grille = gris; //couleur des carrés la grille
-SDL_Color couleur_score = noir; //couleur du texte indiquant le "score" du joueur et de bien d'autres choses...
-SDL_Color couleur_timer = noir; //couleur du timer
-SDL_Color couleur_boutons = gris_pale; //couleur des boutons
-SDL_Color couleur_txt_boutons = noir; //couleur du texte affiché sur les boutons
-SDL_Color couleur_selection_clavier = bleu; //couleur des carrés de la grille ou des boutons lorsque le focus du clavier est par dessus
-SDL_Color couleur_selection_curseur = bleu_efface; //couleur des carrés de la grille ou des boutons lorsque le curseur est par dessus
-SDL_Color couleur_tuile[9] = {transparent, vert_pale, jaune_pale, jaune_orange, orange, orange_fonce, rouge, rouge_fonce, rouge_tres_fonce}; //couleur des tuiles révélées selon le nombre de bombes adjacentes (de 0 à 8)
-char icone_podium[35] = "./source/icone_podium.png"; //nom du fichier à utiliser pour afficher l'icone du podium
-char symbole_pause[35] = "./source/symbole_pause.png"; //nom du fichier contenant le symbole "pause"
-char symbole_fin_de_partie[40] = "./source/symbole_fin_de_partie.png";
-char image_bombe[35] = "./source/symbole_bombe.png";
-char icone_drapeau[35] = "./source/icone_drapeau.png";
-SDL_Texture* texture_icone_podium = NULL; //texture contenant l'icone du podium (déclarée ici car elle est créée par init() et libérée par quitter())
-SDL_Texture* texture_symbole_pause = NULL; //texture contenant le symbole "pause" (déclarée ici pour les mêmes raisons que la précédente)
-SDL_Texture* texture_symbole_fin_de_partie = NULL; //texture contenant le symbole de fin de partie (victoire)
-SDL_Texture* texture_symbole_fin_de_partie_defaite = NULL; //texture contenant le symbole de fin de partie (défaite)
-SDL_Texture* texture_bombe = NULL; //texture contenant l'image d'une bombe (utilisée uniquement en fin de partie)
-SDL_Texture* texture_bombe_finale = NULL; //texture contenant l'image d'une bombe (utilisée uniquement en fin de partie)
-SDL_Texture* texture_drapeau = NULL; //texture contenant l'image du drapeau
-SDL_Texture* texture_drapeau_mal_place = NULL; //texture contenant l'image d'un drapeau mal placé
-SDL_Texture* texture_nbre[9]; //array de textures contenant les chiffres/nombres de 0 à 8
+//Variables globales liées au graphisme du jeu:
 SDL_Rect taille_nbre[9]; //array de rects donnant la taille (x en w et y en h) de chaque nbre, tel que définis à la ligne précédente
 int taille = 0; //taille des carrés dans la grille
 int marge_gauche = 0; //largeur de la marge à gauche de la grille
 int marge_droite = 0; //début de la marge (contenant les boutons) à droite de la grille
 
-//Variables globales liées au jeu et aux réglages non-graphiques:
+//Variables globales liées à la grille:
 int nbre_col = 16; //nbre de colonnes dans la grille
-int ancien_nbre_col = 0; //ancien nbre de colonnes (pour la libération de la mémoire utilisée par la grille entre 2 parties sur des grilles de différentes tailles)
 int nbre_lignes = 16; //nbre de lignes dans la grille
-int nbre_bombes = 40; //nbre de bombes cachées dans la grille
-int nbre_drapeaux = 0; //nbre de drapeaux utilisés
-int pts = 0; //nbre de drapeaux placés au bon endroit
-int pos_grille_x[2] = {0, 0}; //position {clavier, souris} du focus en x sur la grille (s'il y a lieu)
-int pos_grille_y[2] = {0, 0}; //position {clavier, souris} du focus en y sur la grille (s'il y a lieu)
-int tuile_finale[2] = {-1, -1}; //coordonnées {x, y} (dans la grille) de la bombe cliquée par le joueur
-int nbre_tuiles_restantes = -1; //nbre de tuiles non-révélées qui ne sont pas des bombes ou des drapeaux
 tuile** grille; //ptr vers la fameuse grille (les explications suivent une ligne plus bas...)
 // \--> Il s'agit en fait d'un pointeur vers un pointeur vers une tuile/case de la grille.
 //      Toutefois, "grille" sera plutôt utilisé comme un array de tuiles/cases, en 2D et de taille variable (grâce à calloc() (-> voir nouvelle_partie())).
+int nbre_bombes = 40; //nbre de bombes cachées dans la grille
+int nbre_drapeaux = 0; //nbre de drapeaux utilisés
+
+//Variables globales liées à la sélection de zones par le joueur:
 enum zone focus = 0; //zone de la fenêtre "sélectionnée" par le clavier (0 = aucun focus clavier)
+int pos_grille_x[2] = {0, 0}; //position {clavier, souris} du focus en x sur la grille (s'il y a lieu)
+int pos_grille_y[2] = {0, 0}; //position {clavier, souris} du focus en y sur la grille (s'il y a lieu)
+int tuile_finale[2] = {-1, -1}; //coordonnées {x, y} (dans la grille) de la bombe cliquée par le joueur
+
+//Variables globales (surtout des "flags") indiquant "l'état" de la partie / du jeu:
+int nbre_tuiles_restantes = -1; //nbre de tuiles non-révélées qui ne sont pas des bombes ou des drapeaux
+int pts = 0; //nbre de drapeaux placés au bon endroit
+_Bool pause = 0; //indique si le jeu est en pause ou non
+int fin_de_partie = 0; //indique si la partie est terminée ou pas (0 = en cours, 1 = partie terminée (victoire ou défaite pas encore déterminé), 2 = défaite, 3 = victoire)
+
+//Variables globales liées à la "command line"
 _Bool cmd_line = 0; //indique au jeu si le joueur est présentement en train d'utiliser la "command line"
 char cmd[100] = "cmd: "; //commande entrée par le joueur dans la "command line"
 _Bool recalcul = 0; //indique à la fct reveler_tuile() si elle doit recalculer la tuile même si elle est déjà révélée
 _Bool debogage = 0; //permet d'afficher les coordonnées de chaque bombe dans la console au début de chaque partie
-_Bool pause = 0; //indique si le jeu est en pause ou non
-int fin_de_partie = 0; //indique si la partie est terminée ou pas (0 = en cours, 1 = partie terminée (victoire ou défaite pas encore déterminé), 2 = défaite, 3 = victoire)
-_Bool pop_up_systeme = 1; //indique à l'application si elle doit utiliser les pop-up du système ou créer les siens (À faire!)
-_Bool confirmation_quitter = 0; //indique si le jeu doit toujours demander une confirmation avant de quitter une partie en cours (À FAIRE!)
-_Bool afficher_zeros = 0; //indique au programme qu'il doit afficher les zéros sur la grille (À faire!)
+
+//Autres variables globales:
+int ancien_nbre_col = 0; //ancien nbre de colonnes (pour la libération de la mémoire utilisée par la grille entre 2 parties sur des grilles de différentes tailles)
 int erreur = 0; //code d'erreur
 
 
 //Liste des fonctions:
+void gestion_param(char arg[]); //gère les paramètres reçus par l'application à son ouverture
 int init(); //initialise et démarre l'application
 void menu(); //gère le menu principal de l'application
 _Bool grille_perso(); //permet la création d'une grille de taille variable
@@ -150,6 +122,11 @@ int main (int argc, char *argv[])
 	};
 	
 	
+	//Gestion des arguments reçus par le programme:
+	for (int num_arg = 1; num_arg < argc; num_arg++)
+	{gestion_param(argv[num_arg]);}
+	
+	
 	//Démarrage et initialisation du programme et de SDL:
 	printf("Jeu de Minesweeper codé en C.\nVersion %s\n---\n", VERSION);
 	erreur = init();
@@ -171,6 +148,22 @@ int main (int argc, char *argv[])
 }
 
 
+void gestion_param(char arg[])
+//Gère les paramètres reçus par l'application à son ouverture.
+{
+	if (!strcmp(arg, "-?") || !strcmp(arg, "-a") || !strcmp(arg, "--aide"))
+	{
+		printf("Jeu de Minesweeper codé en C.\n\nVoici la liste des options que peut recevoir le programme à son démarrage:\n");
+		printf("--aide (-a ou -?)  affiche ce texte, puis quitte\n");
+		printf("--version (-v)     affiche la version du programme, puis quitte\n");
+		exit(0);
+	}
+	
+	else if (!strcmp(arg, "-v") || !strcmp(arg, "--version"))
+	{printf("Jeu de Minesweeper codé en C.\nVersion %s\n", VERSION); exit(0);}
+}
+
+
 int init()
 //Initialise le programme (appelé une seule fois, au début).
 //Renvoie un code d'erreur négatif ou 0 en cas de succès.
@@ -188,13 +181,16 @@ int init()
 	if (TTF_Init() < 0) //initialisation de SDL_ttf
 	{printf("Erreur lors de l'initialisation de SDL_ttf.\n(%s)\n", TTF_GetError()); SDL_Quit(); return -4;}
 	
-	//Chargement de la police ttf:
-	police = TTF_OpenFont("./source/FreeSerif.ttf", 22);
+	//Chargement des polices ttf:
+	police = TTF_OpenFont(nom_police, taille_police_normale);
 	if (police == NULL)
 	{printf("Erreur lors du chargement de la police ttf:\n%s\n", TTF_GetError()); TTF_Quit(); SDL_Quit(); return -5;}
+	petite_police = TTF_OpenFont(nom_petite_police, taille_petite_police);
+	if (petite_police == NULL) //erreur non-fatale (cette police n'est quand même pas très utilisée...)
+	{printf("Erreur 15: Impossible de créer la petite police (%s).\n", TTF_GetError());}
 	
 	//Création de la fenêtre:
-	fenetre = SDL_CreateWindow("Minesweeper", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1000, 700, SDL_WINDOW_RESIZABLE);
+	fenetre = SDL_CreateWindow("Minesweeper", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, largeur_fenetre[0], hauteur_fenetre[0], SDL_WINDOW_RESIZABLE);
 	if (fenetre == NULL)
 	{printf("Erreur lors de la création de la fenêtre SDL:\n%s\n", SDL_GetError()); TTF_CloseFont(police); TTF_Quit(); SDL_Quit(); return -2;}
 	
@@ -210,7 +206,8 @@ int init()
 	//Création des différents curseurs:
 	curseur_normal = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
 	curseur_txt = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
-	if (curseur_normal == NULL || curseur_txt == NULL) //erreur non-fatale (au pire, on restera stuck avec un curseur normal...)
+	curseur_clic = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
+	if (curseur_normal == NULL || curseur_txt == NULL || curseur_clic == NULL) //erreur non-fatale (au pire, on restera stuck avec un curseur normal...)
 	{printf("Erreur lors de la création des curseurs système texte et normal: %s.\n\n", SDL_GetError()); erreur = -10;}
 	
 	//Création de l'icone de la fenêtre (À FAIRE!):
@@ -272,6 +269,8 @@ int init()
 		texture_nbre[compteur] = SDL_CreateTextureFromSurface(rend, surface_nbre);
 		SDL_FreeSurface(surface_nbre);
 	}
+	
+	return 0;
 }
 
 
@@ -363,7 +362,8 @@ void menu ()
 					break;
 				
 				case bouton_reglages:
-					//À faire!
+					reglages();
+					rafraichir_menu(0);
 					break;
 				}
 				break;
@@ -457,7 +457,7 @@ void menu ()
 			else if (ev.button.x >= xmax - 85 && ev.button.x <= xmax - 23 && ev.button.y >= 20 && ev.button.y <= 62) //bouton podium
 			{/*À faire!*/}
 			else if (ev.button.x >= xmax - 170 && ev.button.x <= xmax - 20 && ev.button.y >= ymax - 60 && ev.button.y <= ymax - 20) //bouton réglages
-			{/*À faire!*/}
+			{reglages(); rafraichir_menu(0);}
 			break;
 		}
 	}
@@ -500,7 +500,8 @@ _Bool grille_perso ()
 				switch (focus)
 				{
 				case gp_plus_col:
-					nbre_col++;
+					if (nbre_col < 50)
+					{nbre_col++;}
 					break;
 				
 				case gp_moins_col:
@@ -509,7 +510,8 @@ _Bool grille_perso ()
 					break;
 				
 				case gp_plus_lignes:
-					nbre_lignes++;
+					if (nbre_lignes < 50)
+					{nbre_lignes++;}
 					break;
 				
 				case gp_moins_lignes:
@@ -531,7 +533,8 @@ _Bool grille_perso ()
 					break;
 				
 				case gp_lancer:
-					return 1;
+					if (nbre_bombes <= nbre_col * nbre_lignes)
+					{return 1;}
 					break;
 				}
 				break;
@@ -618,7 +621,7 @@ _Bool grille_perso ()
 			{nbre_bombes--; rafraichir_menu(gp_moins_bombes);}
 			else if (ev.motion.x >= xmax / 6 + 30 && ev.motion.y >= 4 * ymax / 5 - 60 && ev.motion.x <= xmax / 6 + 180 && ev.motion.y <= 4 * ymax / 5 - 20)
 			{return 0;}
-			else if (ev.motion.x >= 5 * xmax / 6 - 180 && ev.motion.y >= 4 * ymax / 5 - 60 && ev.motion.x <= 5 * xmax / 6 - 30 && ev.motion.y <= 4 * ymax / 5 - 20)
+			else if (ev.motion.x >= 5 * xmax / 6 - 180 && ev.motion.y >= 4 * ymax / 5 - 60 && ev.motion.x <= 5 * xmax / 6 - 30 && ev.motion.y <= 4 * ymax / 5 - 20 && nbre_bombes <= nbre_col * nbre_lignes)
 			{return 1;}
 			break;
 		}
@@ -631,7 +634,6 @@ void rafraichir_menu (enum zone curseur)
 //Reçoit en paramètre la "zone" de l'écran où se trouve le curseur.
 {
 	SDL_Rect rect_icone_podium = {xmax - 74, 15, 41, 41}; //41, parce que 40 détruit complètement l'icone...
-	TTF_Font* petite_police;
 	char buffer[5] = "???";
 	
 	//Arrière-plan de la fenêtre:
@@ -714,10 +716,6 @@ void rafraichir_menu (enum zone curseur)
 	//Dessin de l'interface de création d'une grille personnalisée
 	if (curseur >= gp)
 	{
-		petite_police = TTF_OpenFont("./source/FreeSerif.ttf", 19);
-		if (petite_police == NULL)
-		{printf("Erreur 15: Impossible de créer la petite police (%s).\n", TTF_GetError());}
-		
 		//Dessin du "pop-up":
 		rectangle(xmax / 6, ymax / 5, 2 * xmax / 3, 3 * ymax / 5, 0, couleur_boutons, fond, rend);
 		rectangle(xmax / 6, ymax / 5, 2 * xmax / 3, 3 * ymax / 5, 5, couleur_timer, fond, rend);
@@ -784,8 +782,6 @@ void rafraichir_menu (enum zone curseur)
 		else if (focus == gp_lancer)
 		{rect_arrondi(5 * xmax / 6 - 180, 4 * ymax / 5 - 60, 150, 40, couleur_selection_clavier, couleur_boutons, rend);}
 		afficher_txt_centre("démarrer", 5 * xmax / 6 - 180, 5 * xmax / 6 - 30, 4 * ymax / 5 - 50, police, couleur_timer, rend);
-		
-		TTF_CloseFont(petite_police);
 	}
 	
 	//Affichage de tout ça:
@@ -927,7 +923,14 @@ void partie ()
 		
 		//Vérifie si tous les drapeaux on été placés ou si toutes les tuiles non-bombes ont été dévoilées:
 		if (!fin_de_partie && (nbre_tuiles_restantes <= 0 || nbre_drapeaux == nbre_bombes))
-		{strcpy(cmd, "cmd: rct"); executer_cmd(); strcpy(cmd, "cmd: vv"); executer_cmd();}
+		{
+			strcpy(cmd, "cmd: rct");
+			executer_cmd();
+			if (nbre_drapeaux == nbre_bombes)
+			{strcpy(cmd, "cmd: vv -i"); executer_cmd();}
+			else
+			{fin_de_partie = 3;}
+		}
 		
 		//Gestion de l'input:
 		if (SDL_PollEvent(&ev)) //SDL_PollEvent renvoie 1 s'il trouve un event et 0 s'il n'en trouve pas
@@ -1063,10 +1066,10 @@ void partie ()
 							break;
 						
 						case bouton_reglages:
-							/*if (!fin_de_partie)
+							if (!fin_de_partie)
 							{pause = 1; rafraichir(0);}
-							//À venir!
-							rafraichir(0);*/
+							reglages();
+							rafraichir(0);
 							break;
 						}
 					}
@@ -1269,7 +1272,12 @@ void partie ()
 					}
 				}
 				else if (ev.button.x >= (xmax + marge_droite - 150) / 2 && ev.button.y >= ymax / 2 + 180 && ev.button.x <= (xmax + marge_droite + 150) / 2 && ev.button.y <= ymax / 2 + 220) //bouton réglages
-				{/*À faire!*/}
+				{
+					if (!fin_de_partie)
+					{pause = 1; rafraichir(0);}
+					reglages();
+					rafraichir(0);
+				}
 				break;
 			
 			case SDL_TEXTINPUT:
@@ -1515,10 +1523,13 @@ void executer_cmd ()
 	for (int compteur = 5; cmd[compteur] != '\000'; compteur++)
 	{cmd[compteur - 5] = cmd[compteur]; cmd[compteur - 4] = '\000';}
 	
-	if (!strcmp(cmd, "aide") || !strcmp(cmd, "ls") || !strcmp(cmd, "?"))
+	if (!strcmp(cmd, "/"))
+	{/*On ne fait rien. Au fond, l'utilisateur voulait probablement juste fermer la barre de la même manière qu'il l'a ouverte...*/}
+	else if (!strcmp(cmd, "aide") || !strcmp(cmd, "ls") || !strcmp(cmd, "?"))
 	{
 		printf("\nListe des commandes:\n--------------------\n- aide / ls (?) = affiche ce message dans le terminal\n- recalculer (rc) = recalcule (et révèle) la valeur d'une tuile* (parfois nécessaire après une autre commande)\n");
-		printf("- recalculer tout (rct) = recalcule (et révèle) la valeur de chaque tuile qui n'est pas une bombe\n- miner (m+) = transforme une tuile* en bombe\n- déminer / cacher (m-) = démine et cache une tuile*\n");
+		printf("- recalculer tout (rct) = révèle et recalcule la valeur de chaque tuile qui n'est pas une bombe\n- vérifier victoire (vv) = vérifie si vous avez gagné ou perdu et affiche quelques infos à ce sujet dans le terminal\n");
+		printf("  > vérifier victoire --interne (vv -i) = effectue la commande sans rien afficher dans le terminal\n- miner (m+) = transforme une tuile* en bombe\n- déminer / cacher (m-) = démine et cache une tuile*\n");
 		printf("- drapeau / marquer (d) = place un drapeau sur une tuile* s'il n'y en avait pas ou l'enlève s'il y en avait un\n- focus (xy) = affiche les coordonnées** d'une tuile* dans le terminal\n");
 		printf("- déboguer (db) = active ou désactive le mode débogage, qui affiche les coordonnées** de chaque bombe dans le terminal au début de chaque partie\n--------------------\n");
 		printf("* Lorsqu'une commande fait référence à une tuile, il s'agit de la tuile précédemment sélectionnée avec le clavier.\n");
@@ -1546,7 +1557,7 @@ void executer_cmd ()
 		}
 		recalcul = 0;
 	}
-	else if (!strcmp(cmd, "vérifier victoire") || !strcmp(cmd, "vv"))
+	else if (!strcmp(cmd, "vérifier victoire") || !strcmp(cmd, "vv") || !strcmp(cmd, "vérifier victoire --interne") || !strcmp(cmd, "vv -i"))
 	{
 		pts = 0;
 		
@@ -1559,9 +1570,17 @@ void executer_cmd ()
 			}
 		}
 		if (pts == nbre_bombes)
-		{fin_de_partie = 3; printf("Victoire! (%d drapeaux bien placés / %d mines)\n", pts, nbre_bombes);}
+		{
+			fin_de_partie = 3;
+			if (!strcmp(cmd, "vérifier victoire") || !strcmp(cmd, "vv"))
+			{printf("Victoire! (%d drapeaux bien placés / %d mines)\n", pts, nbre_bombes);}
+		}
 		else
-		{fin_de_partie = 2; printf("Défaite... (%d drapeaux bien placés / %d mines + %d drapeaux mal placés)\n", pts, nbre_bombes, nbre_bombes - pts);}
+		{
+			fin_de_partie = 2;
+			if (!strcmp(cmd, "vérifier victoire") || !strcmp(cmd, "vv"))
+			{printf("Défaite... (%d drapeaux bien placés / %d mines + %d mines non-révélées + %d drapeaux mal placés)\n", pts, nbre_bombes, nbre_bombes - pts, nbre_drapeaux - pts);}
+		}
 	}
 	else if (!strcmp(cmd, "miner") || !strcmp(cmd, "m+"))
 	{
@@ -1658,7 +1677,10 @@ void quitter ()
 	//Destruction des polices et curseurs:
 	SDL_FreeCursor(curseur_normal);
 	SDL_FreeCursor(curseur_txt);
+	SDL_FreeCursor (curseur_clic);
 	TTF_CloseFont(police);
+	if (petite_police != NULL)
+	{TTF_CloseFont(petite_police);}
 	
 	//Fermeture de SDL_ttf et SDL_image:
 	TTF_Quit();
