@@ -156,6 +156,7 @@ void gestion_param(char arg[])
 		printf("Jeu de Minesweeper codé en C.\n\nVoici la liste des options que peut recevoir le programme à son démarrage:\n");
 		printf("--aide (-a ou -?)  affiche ce texte, puis quitte\n");
 		printf("--version (-v)     affiche la version du programme, puis quitte\n");
+		printf("\nCe programme doit normalement être démarré sans arguments, et il n'est même pas nécessaire de le démarrer depuis un terminal.\n");
 		exit(0);
 	}
 	
@@ -1416,6 +1417,7 @@ void rafraichir (enum zone curseur)
 			{				
 				taille_nbre[grille[x][y].etat].x = marge_gauche + x * (taille + 5) + (taille - taille_nbre[grille[x][y].etat].w) / 2;
 				taille_nbre[grille[x][y].etat].y = (ymax - nbre_lignes * (taille + 5)) / 2 + y * (taille + 5) + taille / 2 - 10;
+				if (grille[x][y].etat != 0 || (!grille[x][y].etat && afficher_zeros))
 				SDL_RenderCopy(rend, texture_nbre[grille[x][y].etat], NULL, &taille_nbre[grille[x][y].etat]);
 			}
 			

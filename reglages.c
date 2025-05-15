@@ -48,17 +48,15 @@ enum zone_reglages
 void reglages(); //Initialise et désinitialise les réglages. À appeler pour y accéder.
 void reglages_menu(); //Gère l'accueil des réglages du jeu.
 void modifier_param(int num /*numéro du paramètre à modifier*/); //permet au joueur de consulter/modifier un paramètre
-void mod_dimensions_fenetre (int* x, int* y); //permet de modifier la taille par défaut d'une fenêtre
+void mod_dimensions_fenetre (int* x, int* y, char nom_fenetre[]); //permet de modifier la taille par défaut d'une fenêtre
 //Liste des fonctions modifiant les paramètres:
 void mod_couleurs_grille(); //modifie les couleurs de la grille
 void mod_police(); //modifie la texture des nbres ds la grille
 void mod_zeros(); //affiche/masque les zéros dans la grille
-void mod_theme_vide(); //switch du thème "plein" au thème "vide"
-void mod_theme_plein(); //switch du thème "vide" au thème "plein"
+void mod_theme(); //switch du thème "vide" au thème "plein" et vice-versa
 void mod_couleur_icones(); //change la couleur d'affichage des icones
 void mod_icones_perso(); //permet de charger et utiliser ses propres icones personalisées
 void mod_popup_quitter(); //affiche (ou pas) un pop-up lorsqu'on clique sur le "X"
-//void mod_type_popup(); //switch des pop-ups systèmes à ceux créés par l'application
 void mod_fenetre_principale(); //modifie les dimensions de la fenêtre principale
 void mod_fenetre_reglages(); //modifie les dimensions de la fenêtre des réglages
 void mod_fenetre_podium(); //modifie les dimensions de la fenêtre du podium
@@ -78,8 +76,8 @@ SDL_Color couleur_selection_curseur = bleu_efface; //couleur des carrés de la g
 SDL_Color couleur_tuile[9] = {transparent, vert_pale, jaune_pale, jaune_orange, orange, orange_fonce, rouge, rouge_fonce, rouge_tres_fonce}; //couleur des tuiles révélées selon le nombre de bombes adjacentes (de 0 à 8)
 
 //Fichiers contenant les images et les polices utilisées par le jeu:
-char icone_podium[35] = "./source/icone_podium.png"; //nom du fichier à utiliser pour afficher l'icone du podium
-char symbole_pause[35] = "./source/symbole_pause.png"; //nom du fichier contenant le symbole "pause"
+char icone_podium[35] = "./source/icone_podium.png";
+char symbole_pause[35] = "./source/symbole_pause.png";
 char symbole_fin_de_partie[40] = "./source/symbole_fin_de_partie.png";
 char image_bombe[35] = "./source/symbole_bombe.png";
 char icone_drapeau[35] = "./source/icone_drapeau.png";
@@ -119,9 +117,8 @@ struct parametre param[NBRE_PARAMS] =
 		{"Modifier les polices du jeu", \
 		"Permet de changer les polices utilisées par le jeu ainsi que de modifier leur taille et leur couleur, incluant les nombres affichés sur les tuiles de la grille qui ne sont pas des bombes.", 0, mod_police}, \
 		{"Afficher les zéros dans la grille", "Cliquer ici pour afficher ou masquer le chiffre \"0\" sur les tuiles qui ne sont pas adjacentes à aucune bombe.", 0, mod_zeros}, OPTION_VIDE}, -1},
-	{"choix des symboles", "Vous pouvez choisir ici quels symboles vous souhaitez utiliser.", "Il est conseillé d'utiliser un des 2 thèmes plutôt que des icones tierces.", 4, \
-		{{"Utiliser les symboles pleins", "Utiliser des symboles pleins pour les icones (podium, drapeaux, bombes, etc.).\nThème par défaut.", 1, mod_theme_plein}, \
-		{"Utiliser les symboles vides", "Utiliser des symboles creux pour les icones (podium, drapeaux, bombes, etc.).\nThème alternatif.", 0, mod_theme_vide}, \
+	{"choix des symboles", "Vous pouvez choisir ici quels symboles vous souhaitez utiliser.", "Il est conseillé d'utiliser un des 2 thèmes (symboles pleins ou vides) plutôt que des icones tierces.", 3, \
+		{{"Utiliser les symboles vides", "Utiliser des symboles pleins ou vides pour les icones (podium, drapeaux, bombes, etc.).\nThèmes par défaut.", 0, mod_theme}, \
 		{"Utiliser des symboles personnalisés", "Importer et utiliser des symboles autres que ceux fournis avec le programme.\nNon-recommandé.", 0, mod_icones_perso}, \
 		{"Changer les couleurs des symboles", "Modifier les couleurs des symboles utilisés pour les icones (podium, drapeaux, bombes, etc.).\nFonctionne seulement avec les icones des 2 thèmes du programme.", 0, mod_couleur_icones}}, \
 		0},
@@ -130,24 +127,20 @@ struct parametre param[NBRE_PARAMS] =
 		{{"Seulement si \"Escape\" est appuyé", \
 		"Cliquez ici pour que le programme ne demande une confirmation avant de quitter que si \"Escape\" est appuyé.\n(I.e. cliquer sur le \"X\" de la fenêtre fermera immédiatement le programme.)", 1, mod_popup_quitter}, \
 		{"Toujours demander une confirmation", "Choisissez cette option si vous voulez que le programme demande toujours une confirmation avant de quitter.", 0, mod_popup_quitter}, OPTION_VIDE, OPTION_VIDE}, 0},
-	//{"type de pop-up à utiliser", "L'application peut créer ses propres pop-ups ou utiliser ceux fournis par l'OS.\nCe paramètre est purement esthétique.\nTemporairement indisponible.", \
-		"Les pop-ups du système sont toujours utilisés pour les erreurs fatales.\nSur Linux (avec X11), les pop-ups \"système\" sont en fait crées par SDL afin d'accomoder une plus grande variété de distros.", 2, \
-		{{"Utiliser les pop-ups de l'application", "Choisissez cette option pour utiliser les pop-ups personnalisés de l'application.", 1, mod_type_popup}, \
-		{"Utiliser les pop-ups du système", "Choisissez cette option si vous préférez que l'application utilise toujours les pop-ups de votre OS.", 1, mod_type_popup}, OPTION_VIDE, OPTION_VIDE}, 1},
 	{"taille des fenêtres à l'ouverture", "Vous pouvez décider ici de la taille que doivent avoir les fenêtres de l'application à leur apparition.", "La taille minimale des fenêtres ne sera pas modifiée.", 3, \
 		{{"Taille de la fenêtre principale", "Cliquez ici pour modifier les dimensions de la fenêtre principale (celle qui affiche le menu principal et le jeu).", 0, mod_fenetre_principale}, \
 		{"Taille de la fenêtre des réglages", "Cliquez ici pour modifier les dimensions de la fenêtre des réglages (celle-ci).", 0, mod_fenetre_reglages}, \
 		{"Taille de la fenêtre du podium", "Cliquez ici pour modifier les dimensions de la fenêtre du podium (celle qui affiche le palmarès des meilleurs temps).", 0, mod_fenetre_podium}, OPTION_VIDE}, -1}
 };
 
+
 //Variables globales externes utilisées par les fonctions de ce fichier:
 extern int erreur;
 extern int taille;
 extern SDL_Rect taille_nbre[9];
 
-
 //Fonctions externes utilisées par les fonctions de ce fichier:
-void quitter();
+extern void quitter();
 
 
 void reglages ()
@@ -163,7 +156,7 @@ void reglages ()
 	//Création du renderer:
 	rend_r = SDL_CreateRenderer(fenetre_reglages, -1, 0);
 	if (rend_r == NULL)
-	{printf("Erreur lors de la création du renderer (des réglages) via SDL:\n%s\n", SDL_GetError()); SDL_DestroyWindow(fenetre_reglages); erreur = -53; return;}
+	{printf("Erreur lors de la création du renderer SDL des réglages:\n%s\n", SDL_GetError()); SDL_DestroyWindow(fenetre_reglages); erreur = -53; return;}
 	SDL_SetRenderDrawBlendMode(rend_r, SDL_BLENDMODE_BLEND); //permet l'utilisation de couleurs semi-transparentes (et transparentes)
 	
 	//Taille minimale et ID de la fenêtre:
@@ -187,7 +180,7 @@ void reglages_menu ()
 //Gère le menu d'accueil des réglages.
 {
 	char buffer[150];
-	SDL_Event ev;//ce qui vient de se passer...
+	SDL_Event ev; //ce qui vient de se passer...
 	enum zone_reglages focus = 0; //sélection clavier
 	enum zone_reglages curseur = 0; //sélection curseur
 	
@@ -318,7 +311,7 @@ void modifier_param (int num)
 	SDL_Event ev;
 	enum zone_reglages focus = 0;
 	enum zone_reglages curseur = 0;
-	int afficher_details = 0;
+	int afficher_details = 0; //0 = normal, -1 = détails généraux, 1-4 = détails du paramètre
 	
 	while (1)
 	{
@@ -517,7 +510,7 @@ void modifier_param (int num)
 			break;
 		
 		case SDL_MOUSEMOTION:
-			if (afficher_details != 0)
+			if (afficher_details != 0) //un pop-up affichant des détails est présentement affiché
 			{
 				if (ev.motion.x >= 5 * xmax / 6 - 180 && ev.motion.y >= 4 * ymax / 5 - 60 && ev.motion.x <= 5 * xmax / 6 - 30 && ev.motion.y <= 4 * ymax / 5 - 20)
 				{curseur = bouton_retour_details;}
@@ -525,17 +518,17 @@ void modifier_param (int num)
 				{curseur = 0;}
 			}
 			else if (ev.motion.x >= xmax / 6 && ev.motion.y >= 260 && ev.motion.x <= xmax / 6 + longueur_txt("en savoir plus", 200, police) && ev.motion.y <= 280)
-			{SDL_SetCursor(curseur_clic); curseur = lien_details;}
-			else
+			{SDL_SetCursor(curseur_clic); curseur = lien_details;} //souris sur le lien "plus de détails"
+			else //souris sur le bouton retour, une des 4 options ou ailleurs
 			{
 				SDL_SetCursor(curseur_normal);
 				if (ev.motion.x >= xmax - 170 && ev.motion.y >= ymax - 60 && ev.motion.x <= xmax - 20 && ev.motion.y <= ymax - 20)
 				{curseur = bouton_retour;}
-				else if (!param[num].option[0].non_applicable && ev.motion.x >= xmax / 16 && ev.motion.y >= 300 && ev.motion.x <= 3 * xmax / 8 && ev.motion.y <= ymax / 8 + 300)
+				else if (!param[num].option[0].non_applicable && ev.motion.x >= xmax / 16 && ev.motion.y >= 300 && ev.motion.x <= 7 * xmax / 16 && ev.motion.y <= ymax / 8 + 300)
 				{curseur = option1;}
 				else if (param[num].nbre_options >= 2 && !param[num].option[1].non_applicable && ev.motion.x >= 9 * xmax / 16 && ev.motion.y >= 300 && ev.motion.x <= 15 * xmax / 16 && ev.motion.y <= ymax / 8 + 300)
 				{curseur = option2;}
-				else if (param[num].nbre_options >= 3 && !param[num].option[2].non_applicable && ev.motion.x >= xmax / 16 && ev.motion.y >= ymax / 8 + 350 && ev.motion.x <= 3 * xmax / 8 && ev.motion.y <= ymax / 4 + 350)
+				else if (param[num].nbre_options >= 3 && !param[num].option[2].non_applicable && ev.motion.x >= xmax / 16 && ev.motion.y >= ymax / 8 + 350 && ev.motion.x <= 7 * xmax / 16 && ev.motion.y <= ymax / 4 + 350)
 				{curseur = option3;}
 				else if (param[num].nbre_options >= 4 && !param[num].option[3].non_applicable && ev.motion.x >= 9 * xmax / 16 && ev.motion.y >= ymax / 8 + 350 && ev.motion.x <= 15 * xmax / 16 && ev.motion.y <= ymax / 4 + 350)
 				{curseur = option4;}
@@ -704,6 +697,8 @@ void mod_police ()
 		else if (focus == retour)
 		{rect_arrondi(xmax - 170, ymax - 60, 150, 40, couleur_selection_clavier, fond, rend_r);}
 		afficher_txt_centre("Terminé", xmax - 170, xmax - 20, ymax - 50, police, couleur_txt_boutons, rend_r);
+		
+		afficher_txt("Ce texte utilise la petite police.\nTous les autres textes de cette fenêtre utilisent la police normale.", 20, ymax - 110, xmax - 40, petite_police, couleur_timer, rend_r);
 		
 		SDL_RenderPresent(rend_r);
 		SDL_WaitEvent(&ev);
@@ -885,117 +880,117 @@ void mod_zeros ()
 	char nbre_a_afficher[5] = "0";
 	SDL_Surface* surface_nbre = NULL;
 	
-	if (afficher_zeros)
-	{afficher_zeros = 0; strcpy(param[0].option[2].nom, "Afficher les zéros");}
-	else if (texture_nbre[0] == NULL)
+	if (texture_nbre[0] == NULL)
 	{
 		surface_nbre = TTF_RenderUTF8_Solid_Wrapped(police, nbre_a_afficher, couleur_score, taille);
 		taille_nbre[0].w = surface_nbre->w;
 		taille_nbre[0].h = surface_nbre->h;
 		texture_nbre[0] = SDL_CreateTextureFromSurface(rend, surface_nbre);
 		SDL_FreeSurface(surface_nbre);
+		afficher_zeros = 1;
 		strcpy(param[0].option[2].nom, "Masquer les zéros");
 	}
-	else
+	else if (afficher_zeros)
+	{afficher_zeros = 0; strcpy(param[0].option[2].nom, "Afficher les zéros");}
+	else //if (!afficher_zeros)
 	{afficher_zeros = 1; strcpy(param[0].option[2].nom, "Masquer les zéros");}
 }
 
-void mod_theme_vide ()
-//Switch du thème "plein" au thème "vide"
+void mod_theme ()
+//Switch du thème "vide" au thème "plein" et vice-versa
 {
-	strcpy(icone_podium, "./source/icone_podium_vide.png");
-	strcpy(symbole_pause, "./source/symbole_pause_vide.png");
-	strcpy(symbole_fin_de_partie, "./source/symbole_fin_de_partie_vide.png");
-	strcpy(image_bombe, "./source/symbole_bombe_vide.png");
-	strcpy(icone_drapeau, "./source/icone_drapeau_vide.png");
-	
-	texture_icone_podium = IMG_LoadTexture(rend, icone_podium);
-	texture_symbole_pause = IMG_LoadTexture(rend, symbole_pause);
-	texture_symbole_fin_de_partie = IMG_LoadTexture(rend, symbole_fin_de_partie);
-	texture_symbole_fin_de_partie_defaite = IMG_LoadTexture(rend, symbole_fin_de_partie);
-	texture_bombe = IMG_LoadTexture(rend, image_bombe);
-	texture_bombe_finale = IMG_LoadTexture(rend, image_bombe);
-	texture_drapeau = IMG_LoadTexture(rend, icone_drapeau);
-	texture_drapeau_mal_place = IMG_LoadTexture(rend, icone_drapeau);
-	
-	//Coloration des textures (et vérification de leur existence...):
-	//(Les images qu'on a loadées sont dessinées en blanc, ce qui nous permet de changer très facilement leur couleur en la multipliant par la couleur désirée.)
-	if (texture_icone_podium == NULL)
-	{printf("Erreur lors du chargement de l'icone podium (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
-	else
-	{SDL_SetTextureColorMod(texture_icone_podium, 0, 0, 0);}
-	if (texture_symbole_pause == NULL)
-	{printf("Erreur lors du chargement du symbole \"pause\" (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
-	else
-	{SDL_SetTextureColorMod(texture_symbole_pause, 0, 0, 0);}
-	if (texture_symbole_fin_de_partie == NULL || texture_symbole_fin_de_partie_defaite == NULL)
-	{printf("Erreur lors du chargement du symbole de fin de partie (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
-	else
-	{SDL_SetTextureColorMod(texture_symbole_fin_de_partie, 0, 0, 0); SDL_SetTextureColorMod(texture_symbole_fin_de_partie_defaite, 143, 23, 23);}
-	if (texture_bombe == NULL || texture_bombe_finale == NULL)
-	{printf("Erreur lors du chargement de l'image d'une mine (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
-	else
-	{SDL_SetTextureColorMod(texture_bombe, 0, 0, 0); SDL_SetTextureColorMod(texture_bombe_finale, 143, 23, 23);}
-	if (texture_drapeau == NULL || texture_drapeau_mal_place == NULL)
+	if (!strcmp(param[1].option[0].nom, "Utiliser les symboles pleins"))
 	{
-		printf("Erreur lors du chargement de l'icone drapeau (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError());
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Erreur", "L'icone drapeau n'a pas pu être chargée.\nUn \"X\" remplacera donc les drapeaux.\nConsultez la console pour plus de détails.", NULL);
-		erreur = -13;
-	}
-	else
-	{SDL_SetTextureColorMod(texture_drapeau, 0, 0, 0); SDL_SetTextureColorMod(texture_drapeau_mal_place, 143, 23, 23);}
-	
-	param[1].option[0].non_applicable = 0;
-	param[1].option[1].non_applicable = 1;
-}
-
-void mod_theme_plein ()
-//Switch du thème "vide" au thème "plein"
-{
-	strcpy(icone_podium, "./source/icone_podium.png");
-	strcpy(symbole_pause, "./source/symbole_pause.png");
-	strcpy(symbole_fin_de_partie, "./source/symbole_fin_de_partie.png");
-	strcpy(image_bombe, "./source/symbole_bombe.png");
-	strcpy(icone_drapeau, "./source/icone_drapeau.png");
+		strcpy(icone_podium, "./source/icone_podium.png");
+		strcpy(symbole_pause, "./source/symbole_pause.png");
+		strcpy(symbole_fin_de_partie, "./source/symbole_fin_de_partie.png");
+		strcpy(image_bombe, "./source/symbole_bombe.png");
+		strcpy(icone_drapeau, "./source/icone_drapeau.png");
+			
+		texture_icone_podium = IMG_LoadTexture(rend, icone_podium);
+		texture_symbole_pause = IMG_LoadTexture(rend, symbole_pause);
+		texture_symbole_fin_de_partie = IMG_LoadTexture(rend, symbole_fin_de_partie);
+		texture_symbole_fin_de_partie_defaite = IMG_LoadTexture(rend, symbole_fin_de_partie);
+		texture_bombe = IMG_LoadTexture(rend, image_bombe);
+		texture_bombe_finale = IMG_LoadTexture(rend, image_bombe);
+		texture_drapeau = IMG_LoadTexture(rend, icone_drapeau);
+		texture_drapeau_mal_place = IMG_LoadTexture(rend, icone_drapeau);
 		
-	texture_icone_podium = IMG_LoadTexture(rend, icone_podium);
-	texture_symbole_pause = IMG_LoadTexture(rend, symbole_pause);
-	texture_symbole_fin_de_partie = IMG_LoadTexture(rend, symbole_fin_de_partie);
-	texture_symbole_fin_de_partie_defaite = IMG_LoadTexture(rend, symbole_fin_de_partie);
-	texture_bombe = IMG_LoadTexture(rend, image_bombe);
-	texture_bombe_finale = IMG_LoadTexture(rend, image_bombe);
-	texture_drapeau = IMG_LoadTexture(rend, icone_drapeau);
-	texture_drapeau_mal_place = IMG_LoadTexture(rend, icone_drapeau);
-	
-	//Coloration des textures (et vérification de leur existence...):
-	//(Les images qu'on a loadées sont dessinées en blanc, ce qui nous permet de changer très facilement leur couleur en la multipliant par la couleur désirée.)
-	if (texture_icone_podium == NULL)
-	{printf("Erreur lors du chargement de l'icone podium (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
-	else
-	{SDL_SetTextureColorMod(texture_icone_podium, 0, 0, 0);}
-	if (texture_symbole_pause == NULL)
-	{printf("Erreur lors du chargement du symbole \"pause\" (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
-	else
-	{SDL_SetTextureColorMod(texture_symbole_pause, 0, 0, 0);}
-	if (texture_symbole_fin_de_partie == NULL || texture_symbole_fin_de_partie_defaite == NULL)
-	{printf("Erreur lors du chargement du symbole de fin de partie (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
-	else
-	{SDL_SetTextureColorMod(texture_symbole_fin_de_partie, 0, 0, 0); SDL_SetTextureColorMod(texture_symbole_fin_de_partie_defaite, 143, 23, 23);}
-	if (texture_bombe == NULL || texture_bombe_finale == NULL)
-	{printf("Erreur lors du chargement de l'image d'une mine (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
-	else
-	{SDL_SetTextureColorMod(texture_bombe, 0, 0, 0); SDL_SetTextureColorMod(texture_bombe_finale, 143, 23, 23);}
-	if (texture_drapeau == NULL || texture_drapeau_mal_place == NULL)
-	{
-		printf("Erreur lors du chargement de l'icone drapeau (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError());
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Erreur", "L'icone drapeau n'a pas pu être chargée.\nUn \"X\" remplacera donc les drapeaux.\nConsultez la console pour plus de détails.", NULL);
-		erreur = -13;
+		//Coloration des textures (et vérification de leur existence...):
+		//(Les images qu'on a loadées sont dessinées en blanc, ce qui nous permet de changer très facilement leur couleur en la multipliant par la couleur désirée.)
+		if (texture_icone_podium == NULL)
+		{printf("Erreur lors du chargement de l'icone podium (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+		else
+		{SDL_SetTextureColorMod(texture_icone_podium, 0, 0, 0);}
+		if (texture_symbole_pause == NULL)
+		{printf("Erreur lors du chargement du symbole \"pause\" (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+		else
+		{SDL_SetTextureColorMod(texture_symbole_pause, 0, 0, 0);}
+		if (texture_symbole_fin_de_partie == NULL || texture_symbole_fin_de_partie_defaite == NULL)
+		{printf("Erreur lors du chargement du symbole de fin de partie (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+		else
+		{SDL_SetTextureColorMod(texture_symbole_fin_de_partie, 0, 0, 0); SDL_SetTextureColorMod(texture_symbole_fin_de_partie_defaite, 143, 23, 23);}
+		if (texture_bombe == NULL || texture_bombe_finale == NULL)
+		{printf("Erreur lors du chargement de l'image d'une mine (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+		else
+		{SDL_SetTextureColorMod(texture_bombe, 0, 0, 0); SDL_SetTextureColorMod(texture_bombe_finale, 143, 23, 23);}
+		if (texture_drapeau == NULL || texture_drapeau_mal_place == NULL)
+		{
+			printf("Erreur lors du chargement de l'icone drapeau (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError());
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Erreur", "L'icone drapeau n'a pas pu être chargée.\nUn \"X\" remplacera donc les drapeaux.\nConsultez la console pour plus de détails.", NULL);
+			erreur = -13;
+		}
+		else
+		{SDL_SetTextureColorMod(texture_drapeau, 0, 0, 0); SDL_SetTextureColorMod(texture_drapeau_mal_place, 143, 23, 23);}
+		
+		strcpy(param[1].option[0].nom, "Utiliser les symboles vides");
 	}
 	else
-	{SDL_SetTextureColorMod(texture_drapeau, 0, 0, 0); SDL_SetTextureColorMod(texture_drapeau_mal_place, 143, 23, 23);}
-	
-	param[1].option[0].non_applicable = 1;
-	param[1].option[1].non_applicable = 0;
+	{
+		strcpy(icone_podium, "./source/icone_podium_vide.png");
+		strcpy(symbole_pause, "./source/symbole_pause_vide.png");
+		strcpy(symbole_fin_de_partie, "./source/symbole_fin_de_partie_vide.png");
+		strcpy(image_bombe, "./source/symbole_bombe_vide.png");
+		strcpy(icone_drapeau, "./source/icone_drapeau_vide.png");
+		
+		texture_icone_podium = IMG_LoadTexture(rend, icone_podium);
+		texture_symbole_pause = IMG_LoadTexture(rend, symbole_pause);
+		texture_symbole_fin_de_partie = IMG_LoadTexture(rend, symbole_fin_de_partie);
+		texture_symbole_fin_de_partie_defaite = IMG_LoadTexture(rend, symbole_fin_de_partie);
+		texture_bombe = IMG_LoadTexture(rend, image_bombe);
+		texture_bombe_finale = IMG_LoadTexture(rend, image_bombe);
+		texture_drapeau = IMG_LoadTexture(rend, icone_drapeau);
+		texture_drapeau_mal_place = IMG_LoadTexture(rend, icone_drapeau);
+		
+		//Coloration des textures (et vérification de leur existence...):
+		//(Les images qu'on a loadées sont dessinées en blanc, ce qui nous permet de changer très facilement leur couleur en la multipliant par la couleur désirée.)
+		if (texture_icone_podium == NULL)
+		{printf("Erreur lors du chargement de l'icone podium (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+		else
+		{SDL_SetTextureColorMod(texture_icone_podium, 0, 0, 0);}
+		if (texture_symbole_pause == NULL)
+		{printf("Erreur lors du chargement du symbole \"pause\" (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+		else
+		{SDL_SetTextureColorMod(texture_symbole_pause, 0, 0, 0);}
+		if (texture_symbole_fin_de_partie == NULL || texture_symbole_fin_de_partie_defaite == NULL)
+		{printf("Erreur lors du chargement du symbole de fin de partie (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+		else
+		{SDL_SetTextureColorMod(texture_symbole_fin_de_partie, 0, 0, 0); SDL_SetTextureColorMod(texture_symbole_fin_de_partie_defaite, 143, 23, 23);}
+		if (texture_bombe == NULL || texture_bombe_finale == NULL)
+		{printf("Erreur lors du chargement de l'image d'une mine (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+		else
+		{SDL_SetTextureColorMod(texture_bombe, 0, 0, 0); SDL_SetTextureColorMod(texture_bombe_finale, 143, 23, 23);}
+		if (texture_drapeau == NULL || texture_drapeau_mal_place == NULL)
+		{
+			printf("Erreur lors du chargement de l'icone drapeau (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError());
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Erreur", "L'icone drapeau n'a pas pu être chargée.\nUn \"X\" remplacera donc les drapeaux.\nConsultez la console pour plus de détails.", NULL);
+			erreur = -13;
+		}
+		else
+		{SDL_SetTextureColorMod(texture_drapeau, 0, 0, 0); SDL_SetTextureColorMod(texture_drapeau_mal_place, 143, 23, 23);}
+		
+		strcpy(param[1].option[0].nom, "Utiliser les symboles pleins");
+	}
 }
 
 void mod_couleur_icones ()
@@ -1019,19 +1014,20 @@ void mod_popup_quitter ()
 	{confirmation_quitter = 1; param[2].option[0].non_applicable = 0; param[2].option[1].non_applicable = 1;}
 }
 
-//void mod_type_popup ()
-//Switch des pop-ups systèmes à ceux créés par l'application
-/*{
-	if (pop_up_systeme)
-	{pop_up_systeme = 0; param[3].option[0].non_applicable = 0; param[2].option[1].non_applicable = 1;}
-	else
-	{pop_up_systeme = 1; param[2].option[0].non_applicable = 1; param[2].option[1].non_applicable = 0;}
-}*/
+void mod_fenetre_principale () //modifie les dimensions de la fenêtre principale
+{mod_dimensions_fenetre(&largeur_fenetre[0], &hauteur_fenetre[0], "principale");} //J'aurais bien fait un macro, mais les stupidités d'un "void" pas "void" ont fini par m'avoir...
 
-void mod_dimensions_fenetre (int* x, int* y)
+void mod_fenetre_reglages () //modifie les dimensions de la fenêtre des réglages
+{mod_dimensions_fenetre(&largeur_fenetre[1], &hauteur_fenetre[1], "des réglages");}
+
+void mod_fenetre_podium () //modifie les dimensions de la fenêtre du podium
+{mod_dimensions_fenetre(&largeur_fenetre[2], &hauteur_fenetre[2], "du podium");}
+
+void mod_dimensions_fenetre (int* x, int* y, char nom_fenetre[])
 //Modifie les dimensions par défaut d'une fenêtre.
 //Appelée par les 3 fcts particulières.
 //Reçoit en paramètres 2 ptrs vers les variables contenant la largeur et la hauteur de la fenêtre, qui seront remplies par la fct.
+//Le paramètre nom_fenetre servira à identifier la fenêtre dont on modifie les dimensions.
 {
 	SDL_Event ev;
 	int taille_txt_largeur = longueur_txt("Largeur de la fenêtre:", 1000, police);
@@ -1040,8 +1036,12 @@ void mod_dimensions_fenetre (int* x, int* y)
 	int sel_termine = 0; //Est-ce que le bouton "terminé" est sélectionné? 0 = non, 1 = souris, 2 = clavier
 	char largeur[10];
 	char hauteur[10];
+	char titre[60] = "Dimensions par défaut de la fenêtre ";
+	_Bool termine = 0;
 	
-	while (1)
+	strcat(titre, nom_fenetre);
+	strcat(titre, ":");
+	while (!termine)
 	{
 		sprintf(largeur, "%d", *x);
 		sprintf(hauteur, "%d", *y);
@@ -1049,7 +1049,7 @@ void mod_dimensions_fenetre (int* x, int* y)
 		SDL_SetColor(fond, rend_r);
 		SDL_RenderClear(rend_r);
 		TTF_SetFontStyle(police, TTF_STYLE_UNDERLINE);
-		afficher_txt_centre("Dimensions par défaut de la fenêtre:", 0, xmax, 30, police, couleur_timer, rend_r);
+		afficher_txt_centre(titre, 0, xmax, 30, police, couleur_timer, rend_r);
 		TTF_SetFontStyle(police, TTF_STYLE_NORMAL);
 		
 		afficher_txt("Largeur de la fenêtre:", 20, 90, taille_txt_largeur, police, couleur_timer, rend_r);
@@ -1071,9 +1071,11 @@ void mod_dimensions_fenetre (int* x, int* y)
 		
 		afficher_txt("Toutes les dimensions sont en pixels.", 20, 270, xmax - 40, police, couleur_timer, rend_r);
 		afficher_txt("Si votre résolution système n'est pas de 100%, tout pourait paraître tros grand ou trop petit, surtout si vous avez activé le \"fractionnal scaling\".", 20, 300, xmax - 40, police, couleur_timer, rend_r);
-		afficher_txt("Les dimensions minimales de la fenêtre principale sont de 650 par 500.", 20, 390, xmax - 40, police, couleur_timer, rend_r);
-		afficher_txt("Les dimensions minimales des fenêtres des réglages et du podium sont de 580 par 570.", 20, 450, xmax - 40, police, couleur_timer, rend_r);
-		afficher_txt("Si vous entrez une valeur plus petite que la valeur minimale appropriée, la valeur minimale sera utilisée.", 20, 510, xmax - 40, police, couleur_timer, rend_r);
+		if (!strcmp(nom_fenetre, "principale"))
+		{afficher_txt("Les dimensions minimales de la fenêtre principale sont de 650 par 500.", 20, 390, xmax - 40, police, couleur_timer, rend_r);}
+		else
+		{afficher_txt("Les dimensions minimales des fenêtres des réglages et du podium sont de 580 par 570.", 20, 390, xmax - 40, police, couleur_timer, rend_r);}
+		afficher_txt("Si vous entrez une valeur plus petite que la valeur minimale appropriée, la valeur minimale sera utilisée.", 20, 450, xmax - 40, police, couleur_timer, rend_r);
 		
 		if (selection == 1)
 		{rectangle(30 + taille_txt_largeur, 80, xmax - 50 - taille_txt_largeur, 40, 0, couleur_selection_curseur, fond, rend_r);}
@@ -1090,7 +1092,7 @@ void mod_dimensions_fenetre (int* x, int* y)
 			if (ev.window.windowID != ID_fenetre_reglages) //si l'utilisateur joue avec l'autre fenêtre (lui donnant ainsi le focus, déclenchant cet event), on veut le ramener dans les réglages
 			{SDL_RaiseWindow(fenetre_reglages); SDL_FlashWindow(fenetre_reglages, SDL_FLASH_UNTIL_FOCUSED);}
 			else if (ev.window.event == SDL_WINDOWEVENT_CLOSE) //SDL_QUIT ne fonctionne pas avec plusieurs fenêtres ouvertes...
-			{return;}
+			{termine = 1;}
 			else
 			{SDL_GetWindowSize(fenetre_reglages, &xmax, &ymax);}
 			break;
@@ -1111,7 +1113,7 @@ void mod_dimensions_fenetre (int* x, int* y)
 			else if (ev.button.x >= 30 + taille_txt_hauteur && ev.button.x <= xmax - 20 && ev.button.y >= 150 && ev.button.y <= 190)
 			{selection = 2;}
 			else if (ev.button.x >= 460 + (xmax - 580) / 2 && ev.button.x <= 560 + (xmax - 580) / 2 && ev.button.y >= 220 && ev.button.y <= 260)
-			{return;}
+			{termine = 1;}
 			else
 			{selection = 0;}
 			break;
@@ -1123,7 +1125,7 @@ void mod_dimensions_fenetre (int* x, int* y)
 				if (selection != 0 || sel_termine == 2)
 				{selection = 0; sel_termine = 0;}
 				else
-				{return;}
+				{termine = 1;}
 				break;
 			
 			case SDLK_RIGHT:
@@ -1150,7 +1152,7 @@ void mod_dimensions_fenetre (int* x, int* y)
 			case SDLK_RETURN:
 			case SDLK_KP_ENTER:
 				if (sel_termine == 2)
-				{return;}
+				{termine = 1;}
 				else
 				{selection = 0; sel_termine = 0;}
 				break;
@@ -1195,13 +1197,19 @@ void mod_dimensions_fenetre (int* x, int* y)
 		}
 		SDL_RenderPresent(rend_r);
 	}
+	
+	if (!strcmp(nom_fenetre, "principale"))
+	{
+		if (*x < 650)
+		{*x = 650;}
+		if (*y < 600)
+		{*y = 600;}
+	}
+	else //fenêtre des réglages ou du podium
+	{
+		if (*x < 580)
+		{*x = 580;}
+		if (*y < 570)
+		{*y = 570;}
+	}
 }
-
-void mod_fenetre_principale() //modifie les dimensions de la fenêtre principale
-{mod_dimensions_fenetre(&largeur_fenetre[0], &hauteur_fenetre[0]);} //J'aurais bien fait un macro, mais les stupidités d'un "void" pas "void" ont fini par m'avoir...
-
-void mod_fenetre_reglages() //modifie les dimensions de la fenêtre des réglages
-{mod_dimensions_fenetre(&largeur_fenetre[1], &hauteur_fenetre[1]);}
-
-void mod_fenetre_podium() //modifie les dimensions de la fenêtre du podium
-{mod_dimensions_fenetre(&largeur_fenetre[2], &hauteur_fenetre[2]);}
