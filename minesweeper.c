@@ -47,7 +47,7 @@ enum zone
 
 
 //Variables globales liées au graphisme du jeu:
-SDL_Rect taille_nbre[9]; //array de rects donnant la taille (x en w et y en h) de chaque nbre, tel que définis à la ligne précédente
+SDL_Rect taille_nbre[9]; //array de rects donnant la taille (x en w et y en h) de chaque nbre
 int taille = 0; //taille des carrés dans la grille
 int marge_gauche = 0; //largeur de la marge à gauche de la grille
 int marge_droite = 0; //début de la marge (contenant les boutons) à droite de la grille
@@ -55,7 +55,7 @@ int marge_droite = 0; //début de la marge (contenant les boutons) à droite de 
 //Variables globales liées à la grille:
 int nbre_col = 16; //nbre de colonnes dans la grille
 int nbre_lignes = 16; //nbre de lignes dans la grille
-tuile** grille; //ptr vers la fameuse grille (les explications suivent une ligne plus bas...)
+tuile** grille; //ptr vers la fameuse grille
 // \--> Il s'agit en fait d'un pointeur vers un pointeur vers une tuile/case de la grille.
 //      Toutefois, "grille" sera plutôt utilisé comme un array de tuiles/cases, en 2D et de taille variable (grâce à calloc() (-> voir nouvelle_partie())).
 int nbre_bombes = 40; //nbre de bombes cachées dans la grille

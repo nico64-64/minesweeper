@@ -4,21 +4,21 @@
 
 
 //Macro permettant de changer la couleur des formes dessinées avec SDL de manière plus simple et intelligente:
-#define SDL_SetColor(couleur, renderer) SDL_SetRenderDrawColor(renderer, couleur.r, couleur.g, couleur.b, couleur.a)
+#define SDL_SetColor(couleur, renderer) 	SDL_SetRenderDrawColor(renderer, couleur.r, couleur.g, couleur.b, couleur.a)
 
 //Macro permettant de dessiner un rectangle plein aux coins arrondis:
 #define rect_arrondi(x, y, largeur, hauteur, couleur, fond, renderer)	rectangle(x + 1, y + 1, largeur, hauteur, 0, couleur, fond, renderer); rectangle(x+2, y+2, largeur-2, hauteur-2, 5, couleur, fond, renderer)
 
 //Macros permettant de trouver la longueur d'une ligne de texte:
-#define longueur_txt(txt, longueur_max, police)		afficher_txt(txt, 0, 0, longueur_max, police, transparent, NULL)
+#define longueur_txt(txt, longueur_max, police)					afficher_txt(txt, 0, 0, longueur_max, police, transparent, NULL)
 #define longueur_txt_centre(txt, x_gauche, x_droite, police)	afficher_txt_centre(txt, x_gauche, x_droite, 0, police, transparent, NULL)
 
 
 //Liste des fonctions de ce fichier:
-void tronquer(char[]);
 int afficher_txt(char[], int, int, int, TTF_Font*, SDL_Color, SDL_Renderer*);
 int afficher_txt_centre(char[], int, int, int, TTF_Font*, SDL_Color, SDL_Renderer*);
 void rectangle(int, int, int, int, int, SDL_Color, SDL_Color, SDL_Renderer*);
+void tronquer(char[]);
 
 
 //Palette de couleurs:

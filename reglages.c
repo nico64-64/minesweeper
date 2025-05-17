@@ -1,7 +1,7 @@
 #include "outils_graphiques.c"
 
 
-#define VERSION "0.2" //version du programme
+#define VERSION "0.2.1" //version du programme
 #define OS "Linux" //OS pour lequel le programme est compilé
 
 #define NBRE_PARAMS 4 //nbre de paramètres modifiables (jusqu'à 9)
@@ -50,7 +50,7 @@ void reglages_menu(); //Gère l'accueil des réglages du jeu.
 void modifier_param(int num /*numéro du paramètre à modifier*/); //permet au joueur de consulter/modifier un paramètre
 void mod_dimensions_fenetre (int* x, int* y, char nom_fenetre[]); //permet de modifier la taille par défaut d'une fenêtre
 //Liste des fonctions modifiant les paramètres:
-void mod_couleurs_grille(); //modifie les couleurs de la grille
+void mod_couleurs(); //modifie les couleurs de la grille, des boutons, etc.
 void mod_police(); //modifie la texture des nbres ds la grille
 void mod_zeros(); //affiche/masque les zéros dans la grille
 void mod_theme(); //switch du thème "vide" au thème "plein" et vice-versa
@@ -113,9 +113,9 @@ int taille_petite_police = 19;
 struct parametre param[NBRE_PARAMS] =
 {
 	{"apparence générale", "Vous pouvez modifier ici l'apparence de la grille (plateau de jeu) et du reste de l'application.", "Aucune information supplémentaire.", 3, \
-		{{"Modifier les couleurs de la grille", "Cliquer ici pour modifier la coloration des tuiles qui ne sont pas des bombes.", 0, mod_couleurs_grille}, \
-		{"Modifier les polices du jeu", \
-		"Permet de changer les polices utilisées par le jeu ainsi que de modifier leur taille et leur couleur, incluant les nombres affichés sur les tuiles de la grille qui ne sont pas des bombes.", 0, mod_police}, \
+		{{"Modifier les couleurs du jeu", "Cliquer ici pour modifier la coloration des tuiles, des boutons et bien d'autres choses.\nLa couleur des symboles ne se modifie pas ici.", 0, mod_couleurs}, \
+		{"Modifier les polices du jeu", "Permet de changer les polices utilisées par le jeu ainsi que de modifier leur taille et leur couleur, incluant les nombres affichés sur les tuiles de la grille qui ne sont pas des bombes.", \
+		0, mod_police}, \
 		{"Afficher les zéros dans la grille", "Cliquer ici pour afficher ou masquer le chiffre \"0\" sur les tuiles qui ne sont pas adjacentes à aucune bombe.", 0, mod_zeros}, OPTION_VIDE}, -1},
 	{"choix des symboles", "Vous pouvez choisir ici quels symboles vous souhaitez utiliser.", "Il est conseillé d'utiliser un des 2 thèmes (symboles pleins ou vides) plutôt que des icones tierces.", 3, \
 		{{"Utiliser les symboles vides", "Utiliser des symboles pleins ou vides pour les icones (podium, drapeaux, bombes, etc.).\nThèmes par défaut.", 0, mod_theme}, \
@@ -579,10 +579,293 @@ void modifier_param (int num)
 
 //Fonctions de modification des paramètres (1 fct / paramètre):
 
-void mod_couleurs_grille ()
-//Modifie la couleur des tuiles révélées dans la grille
+void mod_couleurs ()
+//Modifie la couleur de la grille, des boutons, etc.
 {
-	//...
+	enum zone
+	{
+		//0 = ailleurs...
+		//1 à 8 = nbre de bombes adjacentes
+		vide = 10, //tuiles vides
+		score, //nbres sur les tuiles
+		boutons,
+		boutons_bloques,
+		boutons_txt,
+		liens,
+		txt_libre,
+		arriere_plan,
+		selection_clavier = 20,
+		selection_curseur,
+		plus = 50, //bouton "plus d'options"
+		symboles,
+		reinitialiser,
+		appliquer,
+		termine
+	};
+	
+	SDL_Event ev;
+	enum zone focus = 0;
+	enum zone curseur = 0;
+	char buffer[50];
+	_Bool plus_options;
+	
+	while (1)
+	{
+		SDL_SetColor(fond, rend_r);
+		SDL_RenderClear(rend_r);
+		
+		TTF_SetFontStyle(police, TTF_STYLE_UNDERLINE);
+		afficher_txt_centre("Modification des couleurs du jeu:", 20, xmax - 20, 10, police, couleur_timer, rend_r);
+		TTF_SetFontStyle(police, TTF_STYLE_NORMAL);
+		
+		//Couleur des tuiles selon le nbre de bombes adjacentes:
+		strcpy(buffer, "1 bombe adjacente:");
+		for (int compteur = 1; compteur < 9; compteur++)
+		{
+			afficher_txt(buffer, 230 - longueur_txt(buffer, 210, police), compteur * 65 - 10, 210, police, couleur_timer, rend_r);
+			rectangle(240, compteur * 65 - 25, 50, 50, 0, couleur_tuile[compteur], fond, rend_r);
+			if (curseur == compteur)
+			{rectangle(240, compteur * 65 - 25, 50, 50, 0, couleur_selection_curseur, fond, rend_r);}
+			rectangle(240, compteur * 65 - 25, 50, 50, 4, couleur_timer, fond, rend_r);
+			if (focus == compteur)
+			{rectangle(240, compteur * 65 - 25, 50, 50, 4, couleur_selection_clavier, fond, rend_r);}
+			sprintf(buffer, "%d bombes adjacentes:", compteur + 1);
+		}
+		
+		//Couleur des autres éléments (sauf la sélection):
+		afficher_txt("Sélection clavier:", xmax - 80 - longueur_txt("Sélection clavier:", 170, police), 55, 170, police, couleur_timer, rend_r);
+		rectangle(xmax - 70, 40, 50, 50, 0, couleur_boutons, fond, rend_r);
+		rectangle(xmax - 70, 40, 50, 50, 0, couleur_selection_clavier, fond, rend_r);
+		if (curseur == selection_clavier)
+		{rectangle(xmax - 70, 40, 50, 50, 0, couleur_selection_curseur, fond, rend_r);}
+		rectangle(xmax - 70, 40, 50, 50, 4, couleur_timer, fond, rend_r);
+		if (focus == selection_clavier)
+		{rectangle(xmax - 70, 40, 50, 50, 4, couleur_selection_clavier, fond, rend_r);}
+		
+		afficher_txt("Sélection curseur:", xmax - 80 - longueur_txt("Sélection curseur:", 170, police), 120, 170, police, couleur_timer, rend_r);
+		rectangle(xmax - 70, 105, 50, 50, 0, couleur_boutons, fond, rend_r);
+		rectangle(xmax - 70, 105, 50, 50, 0, couleur_selection_curseur, fond, rend_r);
+		if (curseur == selection_curseur)
+		{rectangle(xmax - 70, 105, 50, 50, 0, couleur_selection_curseur, fond, rend_r);}
+		rectangle(xmax - 70, 105, 50, 50, 4, couleur_timer, fond, rend_r);
+		if (focus == selection_curseur)
+		{rectangle(xmax - 70, 105, 50, 50, 4, couleur_selection_clavier, fond, rend_r);}
+		
+		
+		if (xmax - 100 - longueur_txt("Sélection curseur:", 170, police) >= 550)
+		{
+			afficher_txt("Tuiles vides:", 490 - longueur_txt("Tuiles vides:", 170, police), 55, 170, police, couleur_timer, rend_r);
+			rectangle(500, 40, 50, 50, 0, couleur_grille, fond, rend_r);
+			
+			afficher_txt("Nombres dans ", 490 - longueur_txt("Nombres dans ", 170, police), 110, 170, police, couleur_timer, rend_r);
+			afficher_txt("la grille:", 490 - longueur_txt("la grille:", 170, police), 130, 170, police, couleur_timer, rend_r);
+			rectangle(500, 105, 50, 50, 0, couleur_score, fond, rend_r);
+			
+			afficher_txt("Boutons:", 490 - longueur_txt("Boutons:", 170, police), 185, 170, police, couleur_timer, rend_r);
+			rectangle(500, 170, 50, 50, 0, couleur_boutons, fond, rend_r);
+			
+			afficher_txt("Boutons bloqués:", 490 - longueur_txt("Boutons bloqués:", 170, police), 250, 170, police, couleur_timer, rend_r);
+			rectangle(500, 235, 50, 50, 0, couleur_boutons_bloques, fond, rend_r);
+			
+			afficher_txt("Texte dans ", 490 - longueur_txt("Texte dans ", 170, police), 305, 170, police, couleur_timer, rend_r);
+			afficher_txt("les boutons:", 490 - longueur_txt("les boutons:", 170, police), 325, 170, police, couleur_timer, rend_r);
+			rectangle(500, 300, 50, 50, 0, couleur_txt_boutons, fond, rend_r);
+			
+			afficher_txt("Liens cliquables:", 490 - longueur_txt("Liens cliquables:", 170, police), 380, 170, police, couleur_timer, rend_r);
+			rectangle(500, 365, 50, 50, 0, couleur_liens, fond, rend_r);
+			
+			afficher_txt("Texte libre:", 490 - longueur_txt("Texte libre:", 170, police), 445, 170, police, couleur_timer, rend_r);
+			rectangle(500, 430, 50, 50, 0, couleur_timer, fond, rend_r);
+			
+			afficher_txt("Arrière-plan:", 490 - longueur_txt("Arrière-plan:", 170, police), 510, 170, police, couleur_timer, rend_r);
+			rectangle(500, 495, 50, 50, 0, fond, fond, rend_r);
+			
+			for (int compteur = 0; compteur < 8; compteur++)
+			{
+				if (curseur == 10 + compteur)
+				{rectangle(500, 40 + compteur * 65, 50, 50, 0, couleur_selection_curseur, fond, rend_r);}
+				rectangle(500, 40 + compteur * 65, 50, 50, 4, couleur_timer, fond, rend_r);
+				if (focus == 10 + compteur)
+				{rectangle(500, 40 + compteur * 65, 50, 50, 4, couleur_selection_clavier, fond, rend_r);}
+			}
+			
+			plus_options = 0;
+			if (focus == plus)
+			{focus = 0;}
+			if (curseur == plus)
+			{curseur = 0;}
+		}
+		else
+		{
+			rect_arrondi(xmax - 150, ymax - 300, 130, 40, couleur_boutons, fond, rend_r);
+			if (focus == plus)
+			{rect_arrondi(xmax - 150, ymax - 300, 130, 40, couleur_selection_clavier, fond, rend_r);}
+			if (curseur == plus)
+			{rect_arrondi(xmax - 150, ymax - 300, 130, 40, couleur_selection_curseur, fond, rend_r);}
+			afficher_txt_centre("Plus d'options", xmax - 150, xmax - 20, ymax - 290, police, couleur_txt_boutons, rend_r);
+			
+			plus_options = 1;
+			if (focus >= vide && focus <= arriere_plan)
+			{focus = 0;}
+			if (curseur >= vide && curseur <= arriere_plan)
+			{curseur = 0;}
+			
+		}
+		
+		//Boutons:
+		rect_arrondi(xmax - 150, ymax - 240, 130, 40, couleur_boutons, fond, rend_r);
+		if (focus == symboles)
+		{rect_arrondi(xmax - 150, ymax - 240, 130, 40, couleur_selection_clavier, fond, rend_r);}
+		if (curseur == symboles)
+		{rect_arrondi(xmax - 150, ymax - 240, 130, 40, couleur_selection_curseur, fond, rend_r);}
+		afficher_txt_centre("Modifier les", xmax - 150, xmax - 20, ymax - 235, petite_police, couleur_txt_boutons, rend_r);
+		afficher_txt_centre("symboles", xmax - 150, xmax - 20, ymax - 220, petite_police, couleur_txt_boutons, rend_r);
+		
+		rect_arrondi(xmax - 150, ymax - 180, 130, 40, couleur_boutons, fond, rend_r);
+		if (focus == reinitialiser)
+		{rect_arrondi(xmax - 150, ymax - 180, 130, 40, couleur_selection_clavier, fond, rend_r);}
+		if (curseur == reinitialiser)
+		{rect_arrondi(xmax - 150, ymax - 180, 130, 40, couleur_selection_curseur, fond, rend_r);}
+		afficher_txt_centre("Réinitialiser", xmax - 150, xmax - 20, ymax - 170, police, couleur_txt_boutons, rend_r);
+		
+		rect_arrondi(xmax - 150, ymax - 120, 130, 40, couleur_boutons, fond, rend_r);
+		if (focus == appliquer)
+		{rect_arrondi(xmax - 150, ymax - 120, 130, 40, couleur_selection_clavier, fond, rend_r);}
+		if (curseur == appliquer)
+		{rect_arrondi(xmax - 150, ymax - 120, 130, 40, couleur_selection_curseur, fond, rend_r);}
+		afficher_txt_centre("Appliquer", xmax - 150, xmax - 20, ymax - 110, police, couleur_txt_boutons, rend_r);
+		
+		rect_arrondi(xmax - 150, ymax - 60, 130, 40, couleur_boutons, fond, rend_r);
+		if (focus == termine)
+		{rect_arrondi(xmax - 150, ymax - 60, 130, 40, couleur_selection_clavier, fond, rend_r);}
+		if (curseur == termine)
+		{rect_arrondi(xmax - 150, ymax - 60, 130, 40, couleur_selection_curseur, fond, rend_r);}
+		afficher_txt_centre("Terminé", xmax - 150, xmax - 20, ymax - 50, police, couleur_txt_boutons, rend_r);
+		
+		SDL_RenderPresent(rend_r);
+		SDL_WaitEvent(&ev);
+		
+		switch (ev.type)
+		{
+		case SDL_WINDOWEVENT:
+			if (ev.window.windowID != ID_fenetre_reglages) //si l'utilisateur joue avec l'autre fenêtre (lui donnant ainsi le focus, déclenchant cet event), on veut le ramener dans les réglages
+			{SDL_RaiseWindow(fenetre_reglages); SDL_FlashWindow(fenetre_reglages, SDL_FLASH_UNTIL_FOCUSED);}
+			else if (ev.window.event == SDL_WINDOWEVENT_CLOSE) //SDL_QUIT ne fonctionne pas avec plusieurs fenêtres ouvertes...
+			{return;}
+			else
+			{SDL_GetWindowSize(fenetre_reglages, &xmax, &ymax);}
+			break;
+		
+		case SDL_MOUSEMOTION:
+			//...
+			break;
+		
+		case SDL_KEYDOWN:
+			switch (ev.key.keysym.sym)
+			{
+			case SDLK_ESCAPE:
+				return;
+				break;
+			
+			case SDLK_TAB:
+				if (focus >= 1 && focus <= 8)
+				{
+					if (!plus_options)
+					{focus += 9;}
+					else
+					{focus = selection_clavier;}
+				}
+				else if (focus >= vide && focus <= arriere_plan)
+				{focus = selection_clavier;}
+				else if (focus == selection_clavier || focus == selection_curseur)
+				{
+					if (plus_options)
+					{focus = plus;}
+					else
+					{focus = symboles;}
+				}
+				else
+				{focus = 1;}
+				break;
+			
+			case SDLK_RIGHT:
+				if (focus >= 1 && focus <= 8)
+				{
+					if (!plus_options)
+					{focus += 9;}
+					else
+					{focus = selection_clavier;}
+				}
+				else if (focus >= vide && focus <= arriere_plan)
+				{focus = selection_clavier;}
+				else if (focus < plus)
+				{focus = 1;}
+				break;
+			
+			case SDLK_LEFT:
+				if (focus >= vide && focus <= arriere_plan)
+				{focus -= 9;}
+				else if (focus >= 1 && focus <= 8)
+				{focus = selection_clavier;}
+				else if (!plus_options && focus < plus)
+				{focus -= 10;}
+				else if (!focus)
+				{focus = 1;}
+				else if (focus < plus)
+				{focus -= 19;}
+				break;
+			
+			case SDLK_DOWN:
+				if (focus == 8)
+				{focus = 1;}
+				else if (focus == arriere_plan)
+				{focus = vide;}
+				else if ((focus == selection_curseur || focus == termine) && plus_options)
+				{focus = plus;}
+				else if ((focus == selection_curseur || focus == termine) && !plus_options)
+				{focus = symboles;}
+				else
+				{focus++;}
+				break;
+			
+			case SDLK_UP:
+				if (focus == 1)
+				{focus = 8;}
+				else if (focus == vide)
+				{focus = arriere_plan;}
+				else if (focus == selection_clavier)
+				{focus = selection_curseur;}
+				else if (focus == plus || (focus == symboles && !plus_options))
+				{focus = selection_curseur;}
+				else if (!focus)
+				{focus = 1;}
+				else
+				{focus--;}
+				break;
+			
+			case SDLK_RETURN:
+			case SDLK_KP_ENTER:
+				if (focus > 0 && focus < plus)
+				{/* COULEUR */}
+				else if (focus == plus)
+				{/* À faire! */}
+				else if (focus == symboles)
+				{mod_couleur_icones(); return;}
+				else if (focus == reinitialiser)
+				{/* À faire! */}
+				else if (focus == appliquer)
+				{/* À faire? */}
+				else if (focus == termine)
+				{return;}
+				break;
+			}
+			break;
+		
+		case SDL_MOUSEBUTTONDOWN:
+			//...
+			break;
+		}
+	}
 }
 
 void mod_police ()
@@ -597,8 +880,9 @@ void mod_police ()
 		petite_plus,
 		moyen_moins = 15,
 		petite_moins,
-		retour = 20,
-		appliquer
+		retour = 20, //(terminé)
+		appliquer,
+		reinitialiser
 	};
 	
 	SDL_Event ev;
@@ -684,18 +968,25 @@ void mod_police ()
 			SDL_RenderDrawLine(rend_r, xmax / 2 - 150 + 300 * compteur, ymax / 2 + 136, xmax / 2 - 135 + 300 * compteur, ymax / 2 + 121);
 		}
 		
+		rect_arrondi(xmax - 550, ymax - 60, 150, 40, couleur_boutons, fond, rend_r);
+		if (focus == reinitialiser)
+		{rect_arrondi(xmax - 550, ymax - 60, 150, 40, couleur_selection_clavier, fond, rend_r);}
+		if (curseur == reinitialiser)
+		{rect_arrondi(xmax - 550, ymax - 60, 150, 40, couleur_selection_curseur, fond, rend_r);}
+		afficher_txt_centre("Réinitialiser", xmax - 550, xmax - 400, ymax - 50, police, couleur_txt_boutons, rend_r);
+		
 		rect_arrondi(xmax - 360, ymax - 60, 150, 40, couleur_boutons, fond, rend_r);
+		if (focus == appliquer)
+		{rect_arrondi(xmax - 360, ymax - 60, 150, 40, couleur_selection_clavier, fond, rend_r);}
 		if (curseur == appliquer)
 		{rect_arrondi(xmax - 360, ymax - 60, 150, 40, couleur_selection_curseur, fond, rend_r);}
-		else if (focus == appliquer)
-		{rect_arrondi(xmax - 360, ymax - 60, 150, 40, couleur_selection_clavier, fond, rend_r);}
 		afficher_txt_centre("Appliquer", xmax - 360, xmax - 210, ymax - 50, police, couleur_txt_boutons, rend_r);
 		
 		rect_arrondi(xmax - 170, ymax - 60, 150, 40, couleur_boutons, fond, rend_r);
+		if (focus == retour)
+		{rect_arrondi(xmax - 170, ymax - 60, 150, 40, couleur_selection_clavier, fond, rend_r);}
 		if (curseur == retour)
 		{rect_arrondi(xmax - 170, ymax - 60, 150, 40, couleur_selection_curseur, fond, rend_r);}
-		else if (focus == retour)
-		{rect_arrondi(xmax - 170, ymax - 60, 150, 40, couleur_selection_clavier, fond, rend_r);}
 		afficher_txt_centre("Terminé", xmax - 170, xmax - 20, ymax - 50, police, couleur_txt_boutons, rend_r);
 		
 		afficher_txt("Ce texte utilise la petite police.\nTous les autres textes de cette fenêtre utilisent la police normale.", 20, ymax - 110, xmax - 40, petite_police, couleur_timer, rend_r);
@@ -715,10 +1006,121 @@ void mod_police ()
 			break;
 
 		case SDL_MOUSEMOTION:
-			//if (ev.motion.x < )
-			//{
-				//...
-			//}
+			if (ev.motion.y >= ymax - 60 && ev.motion.y <= ymax - 20)
+			{
+				if (ev.motion.x >= xmax - 550 && ev.motion.x <= xmax - 400)
+				{curseur = reinitialiser;}
+				else if (ev.motion.x >= xmax - 360 && ev.motion.x <= xmax - 210)
+				{curseur = appliquer;}
+				else if (ev.motion.x >= xmax - 170 && ev.motion.x <= xmax - 20)
+				{curseur = retour;}
+				else
+				{curseur = 0;}
+			}
+			else if (ev.motion.y >= 80 && ev.motion.y <= 120 && ev.motion.x >= 30 + longueur_st_m && ev.motion.x <= xmax - 20)
+			{SDL_SetCursor(curseur_txt); curseur = nom_moyen;}
+			else if (ev.motion.y >= 150 && ev.motion.y <= 190 && ev.motion.x >= 30 + longueur_st_p && ev.motion.x <= xmax - 20)
+			{SDL_SetCursor(curseur_txt); curseur = nom_petite;}
+			else if (ev.motion.y >= ymax / 2 && ev.motion.y <= ymax / 2 + 45 && ev.motion.x >= xmax / 2 - 190 && ev.motion.x <= xmax / 2 - 110)
+			{curseur = moyen_plus;}
+			else if (ev.motion.y >= ymax / 2 && ev.motion.y <= ymax / 2 + 45 && ev.motion.x >= xmax / 2 + 110 && ev.motion.x <= xmax / 2 + 190)
+			{curseur = petite_plus;}
+			else if (ev.motion.y >= ymax / 2 + 105 && ev.motion.y <= ymax / 2 + 150 && ev.motion.x >= xmax / 2 - 190 && ev.motion.x <= xmax / 2 - 110)
+			{curseur = moyen_moins;}
+			else if (ev.motion.y >= ymax / 2 + 105 && ev.motion.y <= ymax / 2 + 150 && ev.motion.x >= xmax / 2 + 110 && ev.motion.x <= xmax / 2 + 190)
+			{curseur = petite_moins;}
+			else
+			{curseur = 0; SDL_SetCursor(curseur_normal);}
+			break;
+		
+		case SDL_MOUSEBUTTONDOWN:
+			focus = 0;
+			switch (curseur)
+			{
+			case nom_moyen:
+				focus = nom_moyen;
+				break;
+			
+			case nom_petite:
+				focus = nom_petite;
+				break;
+			
+			case moyen_plus:
+				if (taille_police_normale < 30)
+				{taille_police_normale++;}
+				break;
+			
+			case petite_plus:
+				if (taille_petite_police < 25)
+				{taille_petite_police++;}
+				break;
+			
+			case moyen_moins:
+				if (taille_police_normale > 0)
+				{taille_police_normale--;}
+				break;
+			
+			case petite_moins:
+				if (taille_petite_police > 0)
+				{taille_petite_police--;}
+				break;
+			
+			case reinitialiser:
+				taille_police_normale = 22;
+				taille_petite_police = 19;
+				strcpy(nom_police, "./source/FreeSerif.ttf");
+				strcpy(nom_petite_police, "./source/FreeSerif.ttf");
+				//Pas de break! On veut que le code "coule" au case suivant!
+			
+			case retour:
+			case appliquer:
+				police_backup = police;
+				petite_police_backup = petite_police;
+				//Création des nouvelles polices:
+				police = TTF_OpenFont(nom_police, taille_police_normale);
+				if (police == NULL)
+				{
+					printf("Erreur 16: Impossible de charger la nouvelle police normale (%s).\n", TTF_GetError());
+					erreur = -16;
+					police = police_backup;
+				}
+				petite_police = TTF_OpenFont(nom_petite_police, taille_petite_police);
+				if (petite_police == NULL)
+				{printf("Erreur 16: Impossible de charger la nouvelle petite police (%s).\n", TTF_GetError()); erreur = -16; petite_police = petite_police_backup;}
+				//Libération des anciennes polices:
+				if (police_backup != police)
+				{TTF_CloseFont(police_backup);}
+				else
+				{printf("L'ancienne police a été utilisée en guise de fallback pour la police normale.\n");}
+				if (petite_police_backup != NULL && petite_police_backup != petite_police)
+				{TTF_CloseFont(petite_police_backup);}
+				else if (petite_police == NULL)
+				{printf("Aucun fallback trouvé pour la petite police (erreur 17). Certains textes ne seront pas affichés.\n"); erreur = -17;}
+				else
+				{printf("L'ancienne police a été utilisée en guise de fallback pour la petite police.\n");}
+				//Destruction des anciennes textures des nombres dans la grille:
+				for (int compteur = 0; compteur < 8; compteur++)
+				{
+					if (texture_nbre[compteur] != NULL)
+					{SDL_DestroyTexture(texture_nbre[compteur]);}
+					else if (!erreur && (compteur > 0 || afficher_zeros))
+					{erreur = -14; printf("Erreur 14: La texture du chiffre %d n'a pas pu être chargée (au cas où vous ne l'auriez pas remarqué...).\n", compteur);}
+				}
+				//Création des texture des nbres qui indiqueront combien de bombes sont adjacentes à une tuile:
+				for (int compteur = 1 - afficher_zeros; compteur <= 8; compteur++)
+				{
+					sprintf(buffer, "%d", compteur);
+					surface_nbre = TTF_RenderUTF8_Solid_Wrapped(police, buffer, couleur_score, taille);
+					taille_nbre[compteur].w = surface_nbre->w;
+					taille_nbre[compteur].h = surface_nbre->h;
+					texture_nbre[compteur] = SDL_CreateTextureFromSurface(rend, surface_nbre);
+					SDL_FreeSurface(surface_nbre);
+				}
+				//Revient au menu des réglages si on a cliqué sur "terminé":
+				if (curseur == retour)
+				{return;}
+				break;
+			}
 			break;
 		
 		case SDL_KEYDOWN:
@@ -734,15 +1136,19 @@ void mod_police ()
 				else if (focus == nom_moyen || focus == nom_petite)
 				{focus = moyen_plus;}
 				else
-				{focus = appliquer;}
+				{focus = reinitialiser;}
 				break;
 			
 			case SDLK_RIGHT:
 			case SDLK_LEFT:
-				if (focus == moyen_plus || focus == moyen_moins || focus == retour)
+				if (focus == moyen_plus || focus == moyen_moins || ((focus == retour || focus == appliquer) && ev.key.keysym.sym == SDLK_LEFT))
 				{focus++;}
-				else if (focus == petite_plus || focus == petite_moins || focus == appliquer)
+				else if (focus == petite_plus || focus == petite_moins || ((focus == reinitialiser || focus == appliquer) && ev.key.keysym.sym == SDLK_RIGHT))
 				{focus--;}
+				else if (focus == reinitialiser && ev.key.keysym.sym == SDLK_LEFT)
+				{focus = retour;}
+				else if (focus == retour && ev.key.keysym.sym == SDLK_RIGHT)
+				{focus = reinitialiser;}
 				else if (!focus)
 				{focus = moyen_plus;}
 				break;
@@ -789,6 +1195,13 @@ void mod_police ()
 					if (taille_petite_police > 0)
 					{taille_petite_police--;}
 					break;
+				
+				case reinitialiser:
+					taille_police_normale = 22;
+					taille_petite_police = 19;
+					strcpy(nom_police, "./source/FreeSerif.ttf");
+					strcpy(nom_petite_police, "./source/FreeSerif.ttf");
+					//Pas de break! On veut que le code "coule" au case suivant!
 				
 				case retour:
 				case appliquer:
