@@ -49,6 +49,8 @@ void reglages(); //Initialise et désinitialise les réglages. À appeler pour y
 void reglages_menu(); //Gère l'accueil des réglages du jeu.
 void modifier_param(int num /*numéro du paramètre à modifier*/); //permet au joueur de consulter/modifier un paramètre
 void mod_dimensions_fenetre (int* x, int* y, char nom_fenetre[]); //permet de modifier la taille par défaut d'une fenêtre
+_Bool mod_couleur (SDL_Color* couleur, char titre[]); //permet de modifier la couleur d'un élément graphique du programme
+_Bool demander_txt(char titre[], char explications[], char input[], int max, SDL_Window* fenetre_source); //permet de demander du texte à l'utilisateur (pas vraiment un réglage, mais bon...)
 //Liste des fonctions modifiant les paramètres:
 void mod_couleurs(); //modifie les couleurs de la grille, des boutons, etc.
 void mod_police(); //modifie la texture des nbres ds la grille
@@ -102,12 +104,14 @@ SDL_Renderer* rend_r;
 
 //Variables globales liées aux réglages:
 const _Bool pop_up_systeme = 1; //indique à l'application si elle doit utiliser les pop-up du système ou créer les siens (Abandonné...)
+const _Bool extraction_rgb = 1; //indique si les valeurs rgb reçues du color picker doivent être extraits comme avec zenity (ne sert à rien pour l'instant)
 _Bool confirmation_quitter = 0; //indique si le jeu doit toujours demander une confirmation avant de quitter une partie en cours
 _Bool afficher_zeros = 0; //indique au programme qu'il doit afficher les zéros sur la grille
 int largeur_fenetre[3] = {1000, 800, 800}; //largeur (en pixels) des 3 fenêtres du programme (dans l'ordre: principale, réglages, podium)
 int hauteur_fenetre[3] = {700, 700, 700}; //longueur (en pixels) des 3 fenêtres du programme (dans l'ordre: principale, réglages, podium)
 int taille_police_normale = 22;
 int taille_petite_police = 19;
+char color_picker[50] = "zenity --color-selection"; //commande à utiliser pour ouvrir le color picker
 
 //Liste des paramètres modifiables:
 struct parametre param[NBRE_PARAMS] =
@@ -599,14 +603,17 @@ void mod_couleurs ()
 		plus = 50, //bouton "plus d'options"
 		symboles,
 		reinitialiser,
-		appliquer,
 		termine
 	};
 	
+	SDL_Color* PAS_UN_CHOIX_DE_COULEUR;
+	SDL_Color* choix_couleur = PAS_UN_CHOIX_DE_COULEUR;
 	SDL_Event ev;
 	enum zone focus = 0;
 	enum zone curseur = 0;
 	char buffer[50];
+	char titre[200];
+	int largeur_supp = xmax - 640 - longueur_txt("Sélection curseur:", 160, police);
 	_Bool plus_options;
 	
 	while (1)
@@ -652,41 +659,41 @@ void mod_couleurs ()
 		{rectangle(xmax - 70, 105, 50, 50, 4, couleur_selection_clavier, fond, rend_r);}
 		
 		
-		if (xmax - 100 - longueur_txt("Sélection curseur:", 170, police) >= 550)
+		if (xmax - 100 - longueur_txt("Sélection curseur:", 160, police) >= 540)
 		{
-			afficher_txt("Tuiles vides:", 490 - longueur_txt("Tuiles vides:", 170, police), 55, 170, police, couleur_timer, rend_r);
-			rectangle(500, 40, 50, 50, 0, couleur_grille, fond, rend_r);
+			afficher_txt("Tuiles vides:", 480 - longueur_txt("Tuiles vides:", 160, police) + largeur_supp / 2, 55, 160, police, couleur_timer, rend_r);
+			rectangle(490 + largeur_supp / 2, 40, 50, 50, 0, couleur_grille, fond, rend_r);
 			
-			afficher_txt("Nombres dans ", 490 - longueur_txt("Nombres dans ", 170, police), 110, 170, police, couleur_timer, rend_r);
-			afficher_txt("la grille:", 490 - longueur_txt("la grille:", 170, police), 130, 170, police, couleur_timer, rend_r);
-			rectangle(500, 105, 50, 50, 0, couleur_score, fond, rend_r);
+			afficher_txt("Nombres dans ", 480 - longueur_txt("Nombres dans ", 160, police) + largeur_supp / 2, 110, 160, police, couleur_timer, rend_r);
+			afficher_txt("la grille:", 480 - longueur_txt("la grille:", 160, police) + largeur_supp / 2, 130, 160, police, couleur_timer, rend_r);
+			rectangle(490 + largeur_supp / 2, 105, 50, 50, 0, couleur_score, fond, rend_r);
 			
-			afficher_txt("Boutons:", 490 - longueur_txt("Boutons:", 170, police), 185, 170, police, couleur_timer, rend_r);
-			rectangle(500, 170, 50, 50, 0, couleur_boutons, fond, rend_r);
+			afficher_txt("Boutons:", 480 - longueur_txt("Boutons:", 160, police) + largeur_supp / 2, 185, 160, police, couleur_timer, rend_r);
+			rectangle(490 + largeur_supp / 2, 170, 50, 50, 0, couleur_boutons, fond, rend_r);
 			
-			afficher_txt("Boutons bloqués:", 490 - longueur_txt("Boutons bloqués:", 170, police), 250, 170, police, couleur_timer, rend_r);
-			rectangle(500, 235, 50, 50, 0, couleur_boutons_bloques, fond, rend_r);
+			afficher_txt("Boutons bloqués:", 480 - longueur_txt("Boutons bloqués:", 160, police) + largeur_supp / 2, 250, 160, police, couleur_timer, rend_r);
+			rectangle(490 + largeur_supp / 2, 235, 50, 50, 0, couleur_boutons_bloques, fond, rend_r);
 			
-			afficher_txt("Texte dans ", 490 - longueur_txt("Texte dans ", 170, police), 305, 170, police, couleur_timer, rend_r);
-			afficher_txt("les boutons:", 490 - longueur_txt("les boutons:", 170, police), 325, 170, police, couleur_timer, rend_r);
-			rectangle(500, 300, 50, 50, 0, couleur_txt_boutons, fond, rend_r);
+			afficher_txt("Texte dans ", 480 - longueur_txt("Texte dans ", 160, police) + largeur_supp / 2, 305, 160, police, couleur_timer, rend_r);
+			afficher_txt("les boutons:", 480 - longueur_txt("les boutons:", 160, police) + largeur_supp / 2, 325, 160, police, couleur_timer, rend_r);
+			rectangle(490 + largeur_supp / 2, 300, 50, 50, 0, couleur_txt_boutons, fond, rend_r);
 			
-			afficher_txt("Liens cliquables:", 490 - longueur_txt("Liens cliquables:", 170, police), 380, 170, police, couleur_timer, rend_r);
-			rectangle(500, 365, 50, 50, 0, couleur_liens, fond, rend_r);
+			afficher_txt("Liens cliquables:", 480 - longueur_txt("Liens cliquables:", 160, police) + largeur_supp / 2, 380, 160, police, couleur_timer, rend_r);
+			rectangle(490 + largeur_supp / 2, 365, 50, 50, 0, couleur_liens, fond, rend_r);
 			
-			afficher_txt("Texte libre:", 490 - longueur_txt("Texte libre:", 170, police), 445, 170, police, couleur_timer, rend_r);
-			rectangle(500, 430, 50, 50, 0, couleur_timer, fond, rend_r);
+			afficher_txt("Texte libre:", 480 - longueur_txt("Texte libre:", 160, police) + largeur_supp / 2, 445, 160, police, couleur_timer, rend_r);
+			rectangle(490 + largeur_supp / 2, 430, 50, 50, 0, couleur_timer, fond, rend_r);
 			
-			afficher_txt("Arrière-plan:", 490 - longueur_txt("Arrière-plan:", 170, police), 510, 170, police, couleur_timer, rend_r);
-			rectangle(500, 495, 50, 50, 0, fond, fond, rend_r);
+			afficher_txt("Arrière-plan:", 480 - longueur_txt("Arrière-plan:", 160, police) + largeur_supp / 2, 510, 160, police, couleur_timer, rend_r);
+			rectangle(490 + largeur_supp / 2, 495, 50, 50, 0, fond, fond, rend_r);
 			
 			for (int compteur = 0; compteur < 8; compteur++)
 			{
 				if (curseur == 10 + compteur)
-				{rectangle(500, 40 + compteur * 65, 50, 50, 0, couleur_selection_curseur, fond, rend_r);}
-				rectangle(500, 40 + compteur * 65, 50, 50, 4, couleur_timer, fond, rend_r);
+				{rectangle(490 + largeur_supp / 2, 40 + compteur * 65, 50, 50, 0, couleur_selection_curseur, fond, rend_r);}
+				rectangle(490 + largeur_supp / 2, 40 + compteur * 65, 50, 50, 4, couleur_timer, fond, rend_r);
 				if (focus == 10 + compteur)
-				{rectangle(500, 40 + compteur * 65, 50, 50, 4, couleur_selection_clavier, fond, rend_r);}
+				{rectangle(490 + largeur_supp / 2, 40 + compteur * 65, 50, 50, 4, couleur_selection_clavier, fond, rend_r);}
 			}
 			
 			plus_options = 0;
@@ -697,12 +704,12 @@ void mod_couleurs ()
 		}
 		else
 		{
-			rect_arrondi(xmax - 150, ymax - 300, 130, 40, couleur_boutons, fond, rend_r);
+			rect_arrondi(xmax - 150, ymax - 240, 130, 40, couleur_boutons, fond, rend_r);
 			if (focus == plus)
-			{rect_arrondi(xmax - 150, ymax - 300, 130, 40, couleur_selection_clavier, fond, rend_r);}
+			{rect_arrondi(xmax - 150, ymax - 240, 130, 40, couleur_selection_clavier, fond, rend_r);}
 			if (curseur == plus)
-			{rect_arrondi(xmax - 150, ymax - 300, 130, 40, couleur_selection_curseur, fond, rend_r);}
-			afficher_txt_centre("Plus d'options", xmax - 150, xmax - 20, ymax - 290, police, couleur_txt_boutons, rend_r);
+			{rect_arrondi(xmax - 150, ymax - 240, 130, 40, couleur_selection_curseur, fond, rend_r);}
+			afficher_txt_centre("Plus d'options", xmax - 150, xmax - 20, ymax - 230, police, couleur_txt_boutons, rend_r);
 			
 			plus_options = 1;
 			if (focus >= vide && focus <= arriere_plan)
@@ -713,27 +720,20 @@ void mod_couleurs ()
 		}
 		
 		//Boutons:
-		rect_arrondi(xmax - 150, ymax - 240, 130, 40, couleur_boutons, fond, rend_r);
-		if (focus == symboles)
-		{rect_arrondi(xmax - 150, ymax - 240, 130, 40, couleur_selection_clavier, fond, rend_r);}
-		if (curseur == symboles)
-		{rect_arrondi(xmax - 150, ymax - 240, 130, 40, couleur_selection_curseur, fond, rend_r);}
-		afficher_txt_centre("Modifier les", xmax - 150, xmax - 20, ymax - 235, petite_police, couleur_txt_boutons, rend_r);
-		afficher_txt_centre("symboles", xmax - 150, xmax - 20, ymax - 220, petite_police, couleur_txt_boutons, rend_r);
-		
 		rect_arrondi(xmax - 150, ymax - 180, 130, 40, couleur_boutons, fond, rend_r);
-		if (focus == reinitialiser)
+		if (focus == symboles)
 		{rect_arrondi(xmax - 150, ymax - 180, 130, 40, couleur_selection_clavier, fond, rend_r);}
-		if (curseur == reinitialiser)
+		if (curseur == symboles)
 		{rect_arrondi(xmax - 150, ymax - 180, 130, 40, couleur_selection_curseur, fond, rend_r);}
-		afficher_txt_centre("Réinitialiser", xmax - 150, xmax - 20, ymax - 170, police, couleur_txt_boutons, rend_r);
+		afficher_txt_centre("Modifier les", xmax - 150, xmax - 20, ymax - 175, petite_police, couleur_txt_boutons, rend_r);
+		afficher_txt_centre("symboles", xmax - 150, xmax - 20, ymax - 160, petite_police, couleur_txt_boutons, rend_r);
 		
 		rect_arrondi(xmax - 150, ymax - 120, 130, 40, couleur_boutons, fond, rend_r);
-		if (focus == appliquer)
+		if (focus == reinitialiser)
 		{rect_arrondi(xmax - 150, ymax - 120, 130, 40, couleur_selection_clavier, fond, rend_r);}
-		if (curseur == appliquer)
+		if (curseur == reinitialiser)
 		{rect_arrondi(xmax - 150, ymax - 120, 130, 40, couleur_selection_curseur, fond, rend_r);}
-		afficher_txt_centre("Appliquer", xmax - 150, xmax - 20, ymax - 110, police, couleur_txt_boutons, rend_r);
+		afficher_txt_centre("Réinitialiser", xmax - 150, xmax - 20, ymax - 110, police, couleur_txt_boutons, rend_r);
 		
 		rect_arrondi(xmax - 150, ymax - 60, 130, 40, couleur_boutons, fond, rend_r);
 		if (focus == termine)
@@ -742,128 +742,331 @@ void mod_couleurs ()
 		{rect_arrondi(xmax - 150, ymax - 60, 130, 40, couleur_selection_curseur, fond, rend_r);}
 		afficher_txt_centre("Terminé", xmax - 150, xmax - 20, ymax - 50, police, couleur_txt_boutons, rend_r);
 		
-		SDL_RenderPresent(rend_r);
-		SDL_WaitEvent(&ev);
-		
-		switch (ev.type)
+		//Modification de la couleur d'un élément:
+		if (choix_couleur != PAS_UN_CHOIX_DE_COULEUR)
 		{
-		case SDL_WINDOWEVENT:
-			if (ev.window.windowID != ID_fenetre_reglages) //si l'utilisateur joue avec l'autre fenêtre (lui donnant ainsi le focus, déclenchant cet event), on veut le ramener dans les réglages
-			{SDL_RaiseWindow(fenetre_reglages); SDL_FlashWindow(fenetre_reglages, SDL_FLASH_UNTIL_FOCUSED);}
-			else if (ev.window.event == SDL_WINDOWEVENT_CLOSE) //SDL_QUIT ne fonctionne pas avec plusieurs fenêtres ouvertes...
-			{return;}
+			if (mod_couleur(choix_couleur, titre))
+			{choix_couleur = PAS_UN_CHOIX_DE_COULEUR;}
 			else
-			{SDL_GetWindowSize(fenetre_reglages, &xmax, &ymax);}
-			break;
+			{choix_couleur = NULL;}
+			largeur_supp = xmax - 640 - longueur_txt("Sélection curseur:", 160, police);
+		}
 		
-		case SDL_MOUSEMOTION:
-			//...
-			break;
-		
-		case SDL_KEYDOWN:
-			switch (ev.key.keysym.sym)
+		//Gestion des events de cette page:
+		else
+		{
+			SDL_RenderPresent(rend_r);
+			SDL_WaitEvent(&ev);
+			
+			switch (ev.type)
 			{
-			case SDLK_ESCAPE:
-				return;
+			case SDL_WINDOWEVENT:
+				if (ev.window.windowID != ID_fenetre_reglages) //si l'utilisateur joue avec l'autre fenêtre (lui donnant ainsi le focus, déclenchant cet event), on veut le ramener dans les réglages
+				{SDL_RaiseWindow(fenetre_reglages); SDL_FlashWindow(fenetre_reglages, SDL_FLASH_UNTIL_FOCUSED);}
+				else if (ev.window.event == SDL_WINDOWEVENT_CLOSE) //SDL_QUIT ne fonctionne pas avec plusieurs fenêtres ouvertes...
+				{return;}
+				else
+				{SDL_GetWindowSize(fenetre_reglages, &xmax, &ymax); largeur_supp = xmax - 640 - longueur_txt("Sélection curseur:", 160, police);}
 				break;
 			
-			case SDLK_TAB:
-				if (focus >= 1 && focus <= 8)
+			case SDL_MOUSEMOTION:
+				if (ev.motion.x >= 240 && ev.motion.x <= 290)
 				{
-					if (!plus_options)
-					{focus += 9;}
-					else
-					{focus = selection_clavier;}
+					curseur = 0;
+					for (int compteur = 1; compteur < 9; compteur++)
+					{
+						if (ev.motion.y >= compteur * 65 - 25 && ev.motion.y <= compteur * 65 + 25)
+						{curseur = compteur;}
+					}
 				}
-				else if (focus >= vide && focus <= arriere_plan)
-				{focus = selection_clavier;}
-				else if (focus == selection_clavier || focus == selection_curseur)
+				else if (!plus_options && ev.motion.x >= 490 + largeur_supp / 2 && ev.motion.x <= 540 + largeur_supp / 2)
 				{
-					if (plus_options)
+					curseur = 0;
+					for (int compteur = 0; compteur < 8; compteur++)
+					{
+						if (ev.motion.y >= 40 + compteur * 65 && ev.motion.y <= 90 + compteur * 65)
+						{curseur = vide + compteur;}
+					}
+				}
+				else if (ev.motion.x >= xmax - 70 && ev.motion.x <= xmax - 20 && ev.motion.y >= 40 && ev.motion.y <= 90)
+				{curseur = selection_clavier;}
+				else if (ev.motion.x >= xmax - 70 && ev.motion.x <= xmax - 20 && ev.motion.y >= 105 && ev.motion.y <= 155)
+				{curseur = selection_curseur;}
+				else if (plus_options && ev.motion.x >= xmax - 150 && ev.motion.x <= xmax - 20 && ev.motion.y >= ymax - 240 && ev.motion.y <= ymax - 200)
+				{curseur = plus;}
+				else if (ev.motion.x >= xmax - 150 && ev.motion.x <= xmax - 20 && ev.motion.y >= ymax - 180 && ev.motion.y <= ymax - 140)
+				{curseur = symboles;}
+				else if (ev.motion.x >= xmax - 150 && ev.motion.x <= xmax - 20 && ev.motion.y >= ymax - 120 && ev.motion.y <= ymax - 80)
+				{curseur = reinitialiser;}
+				else if (ev.motion.x >= xmax - 150 && ev.motion.x <= xmax - 20 && ev.motion.y >= ymax - 60 && ev.motion.y <= ymax - 20)
+				{curseur = termine;}
+				else
+				{curseur = 0;}
+				break;
+			
+			case SDL_KEYDOWN:
+				switch (ev.key.keysym.sym)
+				{
+				case SDLK_ESCAPE:
+					return;
+					break;
+				
+				case SDLK_TAB:
+					if (focus >= 1 && focus <= 8)
+					{
+						if (!plus_options)
+						{focus += 9;}
+						else
+						{focus = selection_clavier;}
+					}
+					else if (focus >= vide && focus <= arriere_plan)
+					{focus = selection_clavier;}
+					else if (focus == selection_clavier || focus == selection_curseur)
+					{
+						if (plus_options)
+						{focus = plus;}
+						else
+						{focus = symboles;}
+					}
+					else
+					{focus = 1;}
+					break;
+				
+				case SDLK_RIGHT:
+					if (focus >= 1 && focus <= 8)
+					{
+						if (!plus_options)
+						{focus += 9;}
+						else
+						{focus = selection_clavier;}
+					}
+					else if (focus >= vide && focus <= arriere_plan)
+					{focus = selection_clavier;}
+					else if (focus < plus)
+					{focus = 1;}
+					break;
+				
+				case SDLK_LEFT:
+					if (focus >= vide && focus <= arriere_plan)
+					{focus -= 9;}
+					else if (focus >= 1 && focus <= 8)
+					{focus = selection_clavier;}
+					else if (!plus_options && focus < plus)
+					{focus -= 10;}
+					else if (!focus)
+					{focus = 1;}
+					else if (focus < plus)
+					{focus -= 19;}
+					break;
+				
+				case SDLK_DOWN:
+					if (focus == 8)
+					{focus = 1;}
+					else if (focus == arriere_plan)
+					{focus = vide;}
+					else if ((focus == selection_curseur || focus == termine) && plus_options)
 					{focus = plus;}
-					else
+					else if ((focus == selection_curseur || focus == termine) && !plus_options)
 					{focus = symboles;}
-				}
-				else
-				{focus = 1;}
-				break;
-			
-			case SDLK_RIGHT:
-				if (focus >= 1 && focus <= 8)
-				{
-					if (!plus_options)
-					{focus += 9;}
 					else
-					{focus = selection_clavier;}
+					{focus++;}
+					break;
+				
+				case SDLK_UP:
+					if (focus == 1)
+					{focus = 8;}
+					else if (focus == vide)
+					{focus = arriere_plan;}
+					else if (focus == selection_clavier)
+					{focus = selection_curseur;}
+					else if (focus == plus || (focus == symboles && !plus_options))
+					{focus = selection_curseur;}
+					else if (!focus)
+					{focus = 1;}
+					else
+					{focus--;}
+					break;
+				
+				case SDLK_RETURN:
+				case SDLK_KP_ENTER:
+					if (focus >= 1 && focus <= 8)
+					{choix_couleur = &couleur_tuile[focus]; sprintf(titre, "Couleur des tuiles adjacentes à %d bombes:", focus);}
+					else if (focus >= vide && focus <= selection_curseur)
+					{
+						switch (focus)
+						{
+						case vide:
+							choix_couleur = &couleur_grille;
+							strcpy(titre, "Couleur des tuiles vides:");
+							break;
+						
+						case score:
+							choix_couleur = &couleur_score;
+							strcpy(titre, "Couleur des nombres dans la grille:");
+							break;
+						
+						case boutons:
+							choix_couleur = &couleur_boutons;
+							strcpy(titre, "Couleur des boutons:");
+							break;
+						
+						case boutons_bloques:
+							choix_couleur = &couleur_boutons_bloques;
+							strcpy(titre, "Couleur des boutons bloqués:");
+							break;
+						
+						case boutons_txt:
+							choix_couleur = &couleur_txt_boutons;
+							strcpy(titre, "Couleur du texte dans les boutons:");
+							break;
+						
+						case liens:
+							choix_couleur = &couleur_liens;
+							strcpy(titre, "Couleur des liens cliquables:");
+							break;
+						
+						case txt_libre:
+							choix_couleur = &couleur_timer;
+							strcpy(titre, "Couleur du texte écrit sur l'arrière-plan:");
+							break;
+						
+						case arriere_plan:
+							choix_couleur = &fond;
+							strcpy(titre, "Couleur de l'arrière-plan:");
+							break;
+						
+						case selection_clavier:
+							choix_couleur = &couleur_selection_clavier;
+							strcpy(titre, "Couleur des objets sélectionnés avec le clavier:");
+							break;
+						
+						case selection_curseur:
+							choix_couleur = &couleur_selection_curseur;
+							strcpy(titre, "Couleur des objets sélectionnés avec le curseur:");
+							break;
+						}
+					}
+					else if (focus == plus)
+					{SDL_SetWindowSize(fenetre_reglages, 800, 570);} //Si l'utilisateur veut plus d'options mais a une fenêtre trop petite, on lui agrandit sa fenêtre pour qu'il les voit tous.
+					else if (focus == symboles)
+					{mod_couleur_icones(); return;}
+					else if (focus == reinitialiser)
+					{
+						fond = blanc;
+						couleur_grille = gris;
+						couleur_score = noir;
+						couleur_timer = noir;
+						couleur_liens = bleu;
+						couleur_boutons = gris_pale;
+						couleur_boutons_bloques = gris_fonce;
+						couleur_txt_boutons = noir;
+						couleur_selection_clavier = bleu;
+						couleur_selection_curseur = bleu_efface;
+						couleur_tuile[0] = transparent;
+						couleur_tuile[1] = vert_pale;
+						couleur_tuile[2] = jaune_pale;
+						couleur_tuile[3] = jaune_orange;
+						couleur_tuile[4] = orange;
+						couleur_tuile[5] = orange_fonce;
+						couleur_tuile[6] = rouge;
+						couleur_tuile[7] = rouge_fonce;
+						couleur_tuile[8] = rouge_tres_fonce;
+					}
+					else if (focus == termine)
+					{return;}
+					break;
 				}
-				else if (focus >= vide && focus <= arriere_plan)
-				{focus = selection_clavier;}
-				else if (focus < plus)
-				{focus = 1;}
 				break;
 			
-			case SDLK_LEFT:
-				if (focus >= vide && focus <= arriere_plan)
-				{focus -= 9;}
-				else if (focus >= 1 && focus <= 8)
-				{focus = selection_clavier;}
-				else if (!plus_options && focus < plus)
-				{focus -= 10;}
-				else if (!focus)
-				{focus = 1;}
-				else if (focus < plus)
-				{focus -= 19;}
-				break;
-			
-			case SDLK_DOWN:
-				if (focus == 8)
-				{focus = 1;}
-				else if (focus == arriere_plan)
-				{focus = vide;}
-				else if ((focus == selection_curseur || focus == termine) && plus_options)
-				{focus = plus;}
-				else if ((focus == selection_curseur || focus == termine) && !plus_options)
-				{focus = symboles;}
-				else
-				{focus++;}
-				break;
-			
-			case SDLK_UP:
-				if (focus == 1)
-				{focus = 8;}
-				else if (focus == vide)
-				{focus = arriere_plan;}
-				else if (focus == selection_clavier)
-				{focus = selection_curseur;}
-				else if (focus == plus || (focus == symboles && !plus_options))
-				{focus = selection_curseur;}
-				else if (!focus)
-				{focus = 1;}
-				else
-				{focus--;}
-				break;
-			
-			case SDLK_RETURN:
-			case SDLK_KP_ENTER:
-				if (focus > 0 && focus < plus)
-				{/* COULEUR */}
-				else if (focus == plus)
-				{/* À faire! */}
-				else if (focus == symboles)
+			case SDL_MOUSEBUTTONDOWN:
+				focus = 0;
+				if (curseur >= 1 && curseur <= 8)
+				{choix_couleur = &couleur_tuile[curseur]; sprintf(titre, "Couleur des tuiles adjacentes à %d bombes:", curseur);}
+				else if (curseur >= vide && curseur <= selection_curseur)
+				{
+					switch (curseur)
+					{
+					case vide:
+						choix_couleur = &couleur_grille;
+						strcpy(titre, "Couleur des tuiles vides:");
+						break;
+					
+					case score:
+						choix_couleur = &couleur_score;
+						strcpy(titre, "Couleur des nombres dans la grille:");
+						break;
+					
+					case boutons:
+						choix_couleur = &couleur_boutons;
+						strcpy(titre, "Couleur des boutons:");
+						break;
+					
+					case boutons_bloques:
+						choix_couleur = &couleur_boutons_bloques;
+						strcpy(titre, "Couleur des boutons bloqués:");
+						break;
+					
+					case boutons_txt:
+						choix_couleur = &couleur_txt_boutons;
+						strcpy(titre, "Couleur du texte dans les boutons:");
+						break;
+					
+					case liens:
+						choix_couleur = &couleur_liens;
+						strcpy(titre, "Couleur des liens cliquables:");
+						break;
+					
+					case txt_libre:
+						choix_couleur = &couleur_timer;
+						strcpy(titre, "Couleur du texte écrit sur l'arrière-plan:");
+						break;
+					
+					case arriere_plan:
+						choix_couleur = &fond;
+						strcpy(titre, "Couleur de l'arrière-plan:");
+						break;
+					
+					case selection_clavier:
+						choix_couleur = &couleur_selection_clavier;
+						strcpy(titre, "Couleur des objets sélectionnés avec le clavier:");
+						break;
+					
+					case selection_curseur:
+						choix_couleur = &couleur_selection_curseur;
+						strcpy(titre, "Couleur des objets sélectionnés avec le curseur:");
+						break;
+					}
+				}
+				else if (curseur == plus)
+				{SDL_SetWindowSize(fenetre_reglages, 800, 570);} //Si l'utilisateur veut plus d'options mais a une fenêtre trop petite, on lui agrandit sa fenêtre pour qu'il les voit tous.
+				else if (curseur == symboles)
 				{mod_couleur_icones(); return;}
-				else if (focus == reinitialiser)
-				{/* À faire! */}
-				else if (focus == appliquer)
-				{/* À faire? */}
-				else if (focus == termine)
+				else if (curseur == reinitialiser)
+				{
+					fond = blanc;
+					couleur_grille = gris;
+					couleur_score = noir;
+					couleur_timer = noir;
+					couleur_liens = bleu;
+					couleur_boutons = gris_pale;
+					couleur_boutons_bloques = gris_fonce;
+					couleur_txt_boutons = noir;
+					couleur_selection_clavier = bleu;
+					couleur_selection_curseur = bleu_efface;
+					couleur_tuile[0] = transparent;
+					couleur_tuile[1] = vert_pale;
+					couleur_tuile[2] = jaune_pale;
+					couleur_tuile[3] = jaune_orange;
+					couleur_tuile[4] = orange;
+					couleur_tuile[5] = orange_fonce;
+					couleur_tuile[6] = rouge;
+					couleur_tuile[7] = rouge_fonce;
+					couleur_tuile[8] = rouge_tres_fonce;
+				}
+				else if (curseur == termine)
 				{return;}
 				break;
 			}
-			break;
-		
-		case SDL_MOUSEBUTTONDOWN:
-			//...
-			break;
 		}
 	}
 }
@@ -1407,15 +1610,1006 @@ void mod_theme ()
 }
 
 void mod_couleur_icones ()
-//Change la couleur d'affichage des icones
+//Change la couleur d'affichage des icones.
+//Cette fonction ne respecte pas les standards et bonnes pratiques de la programmation.
 {
-	//...
+	enum zone
+	{
+		//0 = ailleurs...
+		podium = 1,
+		pause,
+		victoire,
+		defaite,
+		drapeaux,
+		drapeaux_mal_places,
+		bombes,
+		bombe_cliquee,
+		autres_couleurs = 10,
+		reinitialiser,
+		termine
+	};
+	
+	SDL_Color* PAS_UN_CHOIX_DE_COULEUR;
+	SDL_Color* choix_couleur = PAS_UN_CHOIX_DE_COULEUR;
+	SDL_Event ev;
+	enum zone focus = 0;
+	enum zone curseur = 0;
+	char titre[200];
+	int largeur_supp = xmax - 640;
+	
+	//Couleurs des symboles:
+	SDL_Color couleur_podium = noir;
+	SDL_Color couleur_pause = noir;
+	SDL_Color couleur_victoire = noir;
+	SDL_Color couleur_defaite = rouge_symboles;
+	SDL_Color couleur_drapeaux = noir;
+	SDL_Color couleur_drapeaux_mal_places = rouge_symboles;
+	SDL_Color couleur_bombes = noir;
+	SDL_Color couleur_bombe_cliquee = rouge_symboles;
+	
+	//Rectangles des symboles:
+	SDL_Rect rect_podium = {320 + largeur_supp / 2, 40, 50, 50};
+	SDL_Rect rect_pause = {320 + largeur_supp / 2, 105, 50, 50};
+	SDL_Rect rect_victoire = {320 + largeur_supp / 2, 170, 50, 50};
+	SDL_Rect rect_defaite = {320 + largeur_supp / 2, 235, 50, 50};
+	SDL_Rect rect_drapeaux = {320 + largeur_supp / 2, 300, 50, 50};
+	SDL_Rect rect_drapeaux_mal_places = {320 + largeur_supp / 2, 365, 50, 50};
+	SDL_Rect rect_bombes = {320 + largeur_supp / 2, 430, 50, 50};
+	SDL_Rect rect_bombe_cliquee = {320 + largeur_supp / 2, 495, 50, 50};
+	
+	//Symboles blancs (en buffer):
+	SDL_Texture* __texture_podium = IMG_LoadTexture(rend_r, icone_podium);
+	SDL_Texture* __texture_pause = IMG_LoadTexture(rend_r, symbole_pause);
+	SDL_Texture* __texture_victoire = IMG_LoadTexture(rend_r, symbole_fin_de_partie);
+	SDL_Texture* __texture_defaite = IMG_LoadTexture(rend_r, symbole_fin_de_partie);
+	SDL_Texture* __texture_drapeaux = IMG_LoadTexture(rend_r, icone_drapeau);
+	SDL_Texture* __texture_drapeaux_mal_places = IMG_LoadTexture(rend_r, icone_drapeau);
+	SDL_Texture* __texture_bombes = IMG_LoadTexture(rend_r, image_bombe);
+	SDL_Texture* __texture_bombe_cliquee = IMG_LoadTexture(rend_r, image_bombe);
+	
+	//Symboles colorés (en buffer):
+	SDL_Texture* _texture_podium = __texture_podium;
+	SDL_Texture* _texture_pause = __texture_pause;
+	SDL_Texture* _texture_victoire = __texture_victoire;
+	SDL_Texture* _texture_defaite = __texture_defaite;
+	SDL_Texture* _texture_drapeaux = __texture_drapeaux;
+	SDL_Texture* _texture_drapeaux_mal_places = __texture_drapeaux_mal_places;
+	SDL_Texture* _texture_bombes = __texture_bombes;
+	SDL_Texture* _texture_bombe_cliquee = __texture_bombe_cliquee;
+	
+	
+	//Coloration des textures (et vérification de leur existence...):
+	//(Les images qu'on a loadées sont dessinées en blanc, ce qui nous permet de changer très facilement leur couleur en la multipliant par la couleur désirée.)
+	if (_texture_podium == NULL)
+	{printf("Erreur lors du chargement de l'icone podium (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+	else
+	{SDL_SetTextureColorMod(_texture_podium, 0, 0, 0);}
+	
+	if (_texture_pause == NULL)
+	{printf("Erreur lors du chargement du symbole \"pause\" (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+	else
+	{SDL_SetTextureColorMod(_texture_pause, 0, 0, 0);}
+	
+	if (_texture_victoire == NULL)
+	{printf("Erreur lors du chargement du symbole de fin de partie (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+	else
+	{SDL_SetTextureColorMod(_texture_victoire, 0, 0, 0);}
+	
+	if (_texture_defaite == NULL)
+	{printf("Erreur lors du chargement du symbole de fin de partie (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+	else
+	{SDL_SetTextureColorMod(_texture_defaite, 143, 23, 23);}
+	
+	if (_texture_drapeaux == NULL)
+	{printf("Erreur lors du chargement de l'icone drapeau (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -13;}
+	else
+	{SDL_SetTextureColorMod(_texture_drapeaux, 0, 0, 0);}
+	
+	if (_texture_drapeaux_mal_places == NULL)
+	{printf("Erreur lors du chargement de l'icone drapeau (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -13;}
+	else
+	{SDL_SetTextureColorMod(_texture_drapeaux_mal_places, 143, 23, 23);}
+	
+	if (_texture_bombes == NULL)
+	{printf("Erreur lors du chargement de l'image d'une mine (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+	else
+	{SDL_SetTextureColorMod(_texture_bombes, 0, 0, 0);}
+	
+	if (_texture_bombe_cliquee == NULL || texture_bombe_finale == NULL)
+	{printf("Erreur lors du chargement de l'image d'une mine (%s).\nLe dossier \"source\" a-t-il été altéré ou déplacé?\n\n", SDL_GetError()); erreur = -12;}
+	else
+	{SDL_SetTextureColorMod(_texture_bombe_cliquee, 143, 23, 23);}
+	
+	
+	while (1)
+	{
+		SDL_SetColor(fond, rend_r);
+		SDL_RenderClear(rend_r);
+		
+		TTF_SetFontStyle(police, TTF_STYLE_UNDERLINE);
+		afficher_txt_centre("Modification de la couleur des symboles:", 20, xmax - 20, 10, police, couleur_timer, rend_r);
+		TTF_SetFontStyle(police, TTF_STYLE_NORMAL);
+		
+		//Couleurs modifiables:
+		afficher_txt("Symbole du podium:", 310 - longueur_txt("Symbole du podium:", 200, police) + largeur_supp / 2, 55, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, _texture_podium, NULL, &rect_podium);
+		
+		afficher_txt("Symbole de pause:", 310 - longueur_txt("Symbole de pause:", 200, police) + largeur_supp / 2, 120, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, _texture_pause, NULL, &rect_pause);
+		
+		afficher_txt("Symbole de victoire:", 310 - longueur_txt("Symbole de victoire:", 200, police) + largeur_supp / 2, 185, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, _texture_victoire, NULL, &rect_victoire);
+		
+		afficher_txt("Symbole de défaite:", 310 - longueur_txt("Symbole de défaite:", 200, police) + largeur_supp / 2, 250, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, _texture_defaite, NULL, &rect_defaite);
+		
+		afficher_txt("Drapeaux:", 310 - longueur_txt("Drapeaux:", 200, police) + largeur_supp / 2, 315, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, _texture_drapeaux, NULL, &rect_drapeaux);
+		
+		afficher_txt("Drapeaux mal placés:", 310 - longueur_txt("Drapeaux mal placés:", 200, police) + largeur_supp / 2, 380, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, _texture_drapeaux_mal_places, NULL, &rect_drapeaux_mal_places);
+		
+		afficher_txt("Bombes:", 310 - longueur_txt("Bombes:", 200, police) + largeur_supp / 2, 445, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, _texture_bombes, NULL, &rect_bombes);
+		
+		afficher_txt("Bombe cliquée:", 310 - longueur_txt("Bombe cliquée:", 200, police) + largeur_supp / 2, 510, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, _texture_bombe_cliquee, NULL, &rect_bombe_cliquee);
+		
+		for (int compteur = 1; compteur <= 8; compteur++)
+		{
+			if (curseur == compteur)
+			{rect_arrondi(320 + largeur_supp / 2, compteur * 65 - 25, 50, 50, couleur_selection_curseur, fond, rend_r);}
+			if (focus == compteur)
+			{rectangle(320 + largeur_supp / 2, compteur * 65 - 25, 50, 50, 4, couleur_selection_clavier, fond, rend_r);}
+		}
+		
+		//Boutons:
+		rect_arrondi(xmax - 150, ymax - 180, 130, 40, couleur_boutons, fond, rend_r);
+		if (focus == autres_couleurs)
+		{rect_arrondi(xmax - 150, ymax - 180, 130, 40, couleur_selection_clavier, fond, rend_r);}
+		if (curseur == autres_couleurs)
+		{rect_arrondi(xmax - 150, ymax - 180, 130, 40, couleur_selection_curseur, fond, rend_r);}
+		afficher_txt_centre("Modifier les", xmax - 150, xmax - 20, ymax - 175, petite_police, couleur_txt_boutons, rend_r);
+		afficher_txt_centre("autres couleurs", xmax - 150, xmax - 20, ymax - 160, petite_police, couleur_txt_boutons, rend_r);
+		
+		rect_arrondi(xmax - 150, ymax - 120, 130, 40, couleur_boutons, fond, rend_r);
+		if (focus == reinitialiser)
+		{rect_arrondi(xmax - 150, ymax - 120, 130, 40, couleur_selection_clavier, fond, rend_r);}
+		if (curseur == reinitialiser)
+		{rect_arrondi(xmax - 150, ymax - 120, 130, 40, couleur_selection_curseur, fond, rend_r);}
+		afficher_txt_centre("Réinitialiser", xmax - 150, xmax - 20, ymax - 110, police, couleur_txt_boutons, rend_r);
+		
+		rect_arrondi(xmax - 150, ymax - 60, 130, 40, couleur_boutons, fond, rend_r);
+		if (focus == termine)
+		{rect_arrondi(xmax - 150, ymax - 60, 130, 40, couleur_selection_clavier, fond, rend_r);}
+		if (curseur == termine)
+		{rect_arrondi(xmax - 150, ymax - 60, 130, 40, couleur_selection_curseur, fond, rend_r);}
+		afficher_txt_centre("Terminé", xmax - 150, xmax - 20, ymax - 50, police, couleur_txt_boutons, rend_r);
+		
+		//Modification de la couleur d'un élément:
+		if (choix_couleur != PAS_UN_CHOIX_DE_COULEUR)
+		{
+			if (mod_couleur(choix_couleur, titre))
+			{
+				choix_couleur = PAS_UN_CHOIX_DE_COULEUR;
+				
+				//Mise à jour des textures:
+				_texture_podium = __texture_podium;
+				_texture_pause = __texture_pause;
+				_texture_victoire = __texture_victoire;
+				_texture_defaite = __texture_defaite;
+				_texture_drapeaux = __texture_drapeaux;
+				_texture_drapeaux_mal_places = __texture_drapeaux_mal_places;
+				_texture_bombes = __texture_bombes;
+				_texture_bombe_cliquee = __texture_bombe_cliquee;
+				SDL_SetTextureColorMod(_texture_podium, couleur_podium.r, couleur_podium.g, couleur_podium.b);
+				SDL_SetTextureColorMod(_texture_pause, couleur_pause.r, couleur_pause.g, couleur_pause.b);
+				SDL_SetTextureColorMod(_texture_victoire, couleur_victoire.r, couleur_victoire.g, couleur_victoire.b);
+				SDL_SetTextureColorMod(_texture_defaite, couleur_defaite.r, couleur_defaite.g, couleur_defaite.b);
+				SDL_SetTextureColorMod(_texture_drapeaux, couleur_drapeaux.r, couleur_drapeaux.g, couleur_drapeaux.b);
+				SDL_SetTextureColorMod(_texture_drapeaux_mal_places, couleur_drapeaux_mal_places.r, couleur_drapeaux_mal_places.g, couleur_drapeaux_mal_places.b);
+				SDL_SetTextureColorMod(_texture_bombes, couleur_bombes.r, couleur_bombes.g, couleur_bombes.b);
+				SDL_SetTextureColorMod(_texture_bombe_cliquee, couleur_bombe_cliquee.r, couleur_bombe_cliquee.g, couleur_bombe_cliquee.b);
+				
+			}
+			else
+			{choix_couleur = NULL;}
+			largeur_supp = xmax - 640;
+		}
+		
+		//Gestion des events de cette page:
+		else
+		{
+			SDL_RenderPresent(rend_r);
+			SDL_WaitEvent(&ev);
+			
+			switch (ev.type)
+			{
+			case SDL_WINDOWEVENT:
+				if (ev.window.windowID != ID_fenetre_reglages) //si l'utilisateur joue avec l'autre fenêtre (lui donnant ainsi le focus, déclenchant cet event), on veut le ramener dans les réglages
+				{SDL_RaiseWindow(fenetre_reglages); SDL_FlashWindow(fenetre_reglages, SDL_FLASH_UNTIL_FOCUSED);}
+				else if (ev.window.event == SDL_WINDOWEVENT_CLOSE) //SDL_QUIT ne fonctionne pas avec plusieurs fenêtres ouvertes...
+				{return;}
+				else
+				{
+					SDL_GetWindowSize(fenetre_reglages, &xmax, &ymax);
+					largeur_supp = xmax - 640;
+					
+					rect_podium.x = 320 + largeur_supp / 2;
+					rect_pause.x = 320 + largeur_supp / 2;
+					rect_victoire.x = 320 + largeur_supp / 2;
+					rect_defaite.x = 320 + largeur_supp / 2;
+					rect_drapeaux.x = 320 + largeur_supp / 2;
+					rect_drapeaux_mal_places.x = 320 + largeur_supp / 2;
+					rect_bombes.x = 320 + largeur_supp / 2;
+					rect_bombe_cliquee.x = 320 + largeur_supp / 2;
+				}
+				break;
+			
+			case SDL_MOUSEMOTION:
+				if (ev.motion.x >= 320 + largeur_supp / 2 && ev.motion.x <= 370 + largeur_supp / 2)
+				{
+					curseur = 0;
+					for (int compteur = 0; compteur < 8; compteur++)
+					{
+						if (ev.motion.y >= 40 + compteur * 65 && ev.motion.y <= 90 + compteur * 65)
+						{curseur = podium + compteur;}
+					}
+				}
+				else if (ev.motion.x >= xmax - 150 && ev.motion.x <= xmax - 20 && ev.motion.y >= ymax - 180 && ev.motion.y <= ymax - 140)
+				{curseur = autres_couleurs;}
+				else if (ev.motion.x >= xmax - 150 && ev.motion.x <= xmax - 20 && ev.motion.y >= ymax - 120 && ev.motion.y <= ymax - 80)
+				{curseur = reinitialiser;}
+				else if (ev.motion.x >= xmax - 150 && ev.motion.x <= xmax - 20 && ev.motion.y >= ymax - 60 && ev.motion.y <= ymax - 20)
+				{curseur = termine;}
+				else
+				{curseur = 0;}
+				break;
+			
+			case SDL_KEYDOWN:
+				switch (ev.key.keysym.sym)
+				{
+				case SDLK_ESCAPE:
+					return;
+					break;
+				
+				case SDLK_TAB:
+					if (focus >= 1 && focus <= 8)
+					{focus = autres_couleurs;}
+					else
+					{focus = 1;}
+					break;
+				
+				case SDLK_RIGHT:
+				case SDLK_LEFT:
+					if (!focus)
+					{focus = 1;}
+					break;
+				
+				case SDLK_DOWN:
+					if (focus == 8)
+					{focus = 1;}
+					else if (focus == termine)
+					{focus = autres_couleurs;}
+					else
+					{focus++;}
+					break;
+				
+				case SDLK_UP:
+					if (focus == 1)
+					{focus = 8;}
+					else if (focus == autres_couleurs)
+					{focus = termine;}
+					else if (!focus)
+					{focus = 1;}
+					else
+					{focus--;}
+					break;
+				
+				case SDLK_RETURN:
+				case SDLK_KP_ENTER:
+					switch (focus)
+					{
+					case podium:
+						choix_couleur = &couleur_podium;
+						strcpy(titre, "Couleur du symbole du podium:");
+						break;
+					
+					case pause:
+						choix_couleur = &couleur_pause;
+						strcpy(titre, "Couleur du symbole de pause:");
+						break;
+					
+					case victoire:
+						choix_couleur = &couleur_victoire;
+						strcpy(titre, "Couleur du symbole de victoire:");
+						break;
+					
+					case defaite:
+						choix_couleur = &couleur_defaite;
+						strcpy(titre, "Couleur du symbole de défaite:");
+						break;
+					
+					case drapeaux:
+						choix_couleur = &couleur_drapeaux;
+						strcpy(titre, "Couleur des drapeaux:");
+						break;
+					
+					case drapeaux_mal_places:
+						choix_couleur = &couleur_drapeaux_mal_places;
+						strcpy(titre, "Couleur des drapeaux mal placés:");
+						break;
+					
+					case bombes:
+						choix_couleur = &couleur_bombes;
+						strcpy(titre, "Couleur des bombes:");
+						break;
+					
+					case bombe_cliquee:
+						choix_couleur = &couleur_bombe_cliquee;
+						strcpy(titre, "Couleur de la bombe cliquée:");
+						break;
+					
+					case autres_couleurs:
+						mod_couleurs();
+						return;
+					
+					case reinitialiser:
+						couleur_podium = noir;
+						couleur_pause = noir;
+						couleur_victoire = noir;
+						couleur_defaite = rouge_symboles;
+						couleur_drapeaux = noir;
+						couleur_drapeaux_mal_places = rouge_symboles;
+						couleur_bombes = noir;
+						couleur_bombe_cliquee = rouge_symboles;
+						
+						_texture_podium = __texture_podium;
+						_texture_pause = __texture_pause;
+						_texture_victoire = __texture_victoire;
+						_texture_defaite = __texture_defaite;
+						_texture_drapeaux = __texture_drapeaux;
+						_texture_drapeaux_mal_places = __texture_drapeaux_mal_places;
+						_texture_bombes = __texture_bombes;
+						_texture_bombe_cliquee = __texture_bombe_cliquee;
+						
+						SDL_SetTextureColorMod(_texture_podium, couleur_podium.r, couleur_podium.g, couleur_podium.b);
+						SDL_SetTextureColorMod(_texture_pause, couleur_pause.r, couleur_pause.g, couleur_pause.b);
+						SDL_SetTextureColorMod(_texture_victoire, couleur_victoire.r, couleur_victoire.g, couleur_victoire.b);
+						SDL_SetTextureColorMod(_texture_defaite, couleur_defaite.r, couleur_defaite.g, couleur_defaite.b);
+						SDL_SetTextureColorMod(_texture_drapeaux, couleur_drapeaux.r, couleur_drapeaux.g, couleur_drapeaux.b);
+						SDL_SetTextureColorMod(_texture_drapeaux_mal_places, couleur_drapeaux_mal_places.r, couleur_drapeaux_mal_places.g, couleur_drapeaux_mal_places.b);
+						SDL_SetTextureColorMod(_texture_bombes, couleur_bombes.r, couleur_bombes.g, couleur_bombes.b);
+						SDL_SetTextureColorMod(_texture_bombe_cliquee, couleur_bombe_cliquee.r, couleur_bombe_cliquee.g, couleur_bombe_cliquee.b);
+						break;
+					
+					case termine:
+						if (texture_icone_podium != NULL)
+						{SDL_DestroyTexture(texture_icone_podium);}
+						if (texture_symbole_pause != NULL)
+						{SDL_DestroyTexture(texture_symbole_pause);}
+						if (texture_symbole_fin_de_partie != NULL)
+						{SDL_DestroyTexture(texture_symbole_fin_de_partie);}
+						if (texture_symbole_fin_de_partie_defaite != NULL)
+						{SDL_DestroyTexture(texture_symbole_fin_de_partie_defaite);}
+						if (texture_bombe != NULL)
+						{SDL_DestroyTexture(texture_bombe);}
+						if (texture_bombe_finale != NULL)
+						{SDL_DestroyTexture(texture_bombe_finale);}
+						if (texture_drapeau != NULL)
+						{SDL_DestroyTexture(texture_drapeau);}
+						if (texture_drapeau_mal_place != NULL)
+						{SDL_DestroyTexture(texture_drapeau_mal_place);}
+						
+						SDL_DestroyTexture(_texture_podium);
+						SDL_DestroyTexture(__texture_podium);
+						SDL_DestroyTexture(_texture_pause);
+						SDL_DestroyTexture(__texture_pause);
+						SDL_DestroyTexture(_texture_victoire);
+						SDL_DestroyTexture(__texture_victoire);
+						SDL_DestroyTexture(_texture_defaite);
+						SDL_DestroyTexture(__texture_defaite);
+						SDL_DestroyTexture(_texture_drapeaux);
+						SDL_DestroyTexture(__texture_drapeaux);
+						SDL_DestroyTexture(_texture_drapeaux_mal_places);
+						SDL_DestroyTexture(__texture_drapeaux_mal_places);
+						SDL_DestroyTexture(_texture_bombes);
+						SDL_DestroyTexture(__texture_bombes);
+						SDL_DestroyTexture(_texture_bombe_cliquee);
+						SDL_DestroyTexture(__texture_bombe_cliquee);
+						
+						texture_icone_podium = IMG_LoadTexture(rend, icone_podium);
+						texture_symbole_pause = IMG_LoadTexture(rend, symbole_pause);
+						texture_symbole_fin_de_partie = IMG_LoadTexture(rend, symbole_fin_de_partie);
+						texture_symbole_fin_de_partie_defaite = IMG_LoadTexture(rend, symbole_fin_de_partie);
+						texture_bombe = IMG_LoadTexture(rend, image_bombe);
+						texture_bombe_finale = IMG_LoadTexture(rend, image_bombe);
+						texture_drapeau = IMG_LoadTexture(rend, icone_drapeau);
+						texture_drapeau_mal_place = IMG_LoadTexture(rend, icone_drapeau);
+						
+						SDL_SetTextureColorMod(texture_icone_podium, couleur_podium.r, couleur_podium.g, couleur_podium.b);
+						SDL_SetTextureColorMod(texture_symbole_pause, couleur_pause.r, couleur_pause.g, couleur_pause.b);
+						SDL_SetTextureColorMod(texture_symbole_fin_de_partie, couleur_victoire.r, couleur_victoire.g, couleur_victoire.b);
+						SDL_SetTextureColorMod(texture_symbole_fin_de_partie_defaite, couleur_defaite.r, couleur_defaite.g, couleur_defaite.b);
+						SDL_SetTextureColorMod(texture_drapeau, couleur_drapeaux.r, couleur_drapeaux.g, couleur_drapeaux.b);
+						SDL_SetTextureColorMod(texture_drapeau_mal_place, couleur_drapeaux_mal_places.r, couleur_drapeaux_mal_places.g, couleur_drapeaux_mal_places.b);
+						SDL_SetTextureColorMod(texture_bombe, couleur_bombes.r, couleur_bombes.g, couleur_bombes.b);
+						SDL_SetTextureColorMod(texture_bombe_finale, couleur_bombe_cliquee.r, couleur_bombe_cliquee.g, couleur_bombe_cliquee.b);
+						return;
+					}
+					break;
+				}
+				break;
+			
+			case SDL_MOUSEBUTTONDOWN:
+				focus = 0;
+				switch (curseur)
+				{
+				case podium:
+					choix_couleur = &couleur_podium;
+					strcpy(titre, "Couleur du symbole du podium:");
+					break;
+				
+				case pause:
+					choix_couleur = &couleur_pause;
+					strcpy(titre, "Couleur du symbole de pause:");
+					break;
+				
+				case victoire:
+					choix_couleur = &couleur_victoire;
+					strcpy(titre, "Couleur du symbole de victoire:");
+					break;
+				
+				case defaite:
+					choix_couleur = &couleur_defaite;
+					strcpy(titre, "Couleur du symbole de défaite:");
+					break;
+				
+				case drapeaux:
+					choix_couleur = &couleur_drapeaux;
+					strcpy(titre, "Couleur des drapeaux:");
+					break;
+				
+				case drapeaux_mal_places:
+					choix_couleur = &couleur_drapeaux_mal_places;
+					strcpy(titre, "Couleur des drapeaux mal placés:");
+					break;
+				
+				case bombes:
+					choix_couleur = &couleur_bombes;
+					strcpy(titre, "Couleur des bombes:");
+					break;
+				
+				case bombe_cliquee:
+					choix_couleur = &couleur_bombe_cliquee;
+					strcpy(titre, "Couleur de la bombe cliquée:");
+					break;
+				
+				case autres_couleurs:
+					mod_couleurs();
+					return;
+				
+				case reinitialiser:
+					couleur_podium = noir;
+					couleur_pause = noir;
+					couleur_victoire = noir;
+					couleur_defaite = rouge_symboles;
+					couleur_drapeaux = noir;
+					couleur_drapeaux_mal_places = rouge_symboles;
+					couleur_bombes = noir;
+					couleur_bombe_cliquee = rouge_symboles;
+					
+					_texture_podium = __texture_podium;
+					_texture_pause = __texture_pause;
+					_texture_victoire = __texture_victoire;
+					_texture_defaite = __texture_defaite;
+					_texture_drapeaux = __texture_drapeaux;
+					_texture_drapeaux_mal_places = __texture_drapeaux_mal_places;
+					_texture_bombes = __texture_bombes;
+					_texture_bombe_cliquee = __texture_bombe_cliquee;
+					
+					SDL_SetTextureColorMod(_texture_podium, couleur_podium.r, couleur_podium.g, couleur_podium.b);
+					SDL_SetTextureColorMod(_texture_pause, couleur_pause.r, couleur_pause.g, couleur_pause.b);
+					SDL_SetTextureColorMod(_texture_victoire, couleur_victoire.r, couleur_victoire.g, couleur_victoire.b);
+					SDL_SetTextureColorMod(_texture_defaite, couleur_defaite.r, couleur_defaite.g, couleur_defaite.b);
+					SDL_SetTextureColorMod(_texture_drapeaux, couleur_drapeaux.r, couleur_drapeaux.g, couleur_drapeaux.b);
+					SDL_SetTextureColorMod(_texture_drapeaux_mal_places, couleur_drapeaux_mal_places.r, couleur_drapeaux_mal_places.g, couleur_drapeaux_mal_places.b);
+					SDL_SetTextureColorMod(_texture_bombes, couleur_bombes.r, couleur_bombes.g, couleur_bombes.b);
+					SDL_SetTextureColorMod(_texture_bombe_cliquee, couleur_bombe_cliquee.r, couleur_bombe_cliquee.g, couleur_bombe_cliquee.b);
+					break;
+				
+				case termine:
+					if (texture_icone_podium != NULL)
+					{SDL_DestroyTexture(texture_icone_podium);}
+					if (texture_symbole_pause != NULL)
+					{SDL_DestroyTexture(texture_symbole_pause);}
+					if (texture_symbole_fin_de_partie != NULL)
+					{SDL_DestroyTexture(texture_symbole_fin_de_partie);}
+					if (texture_symbole_fin_de_partie_defaite != NULL)
+					{SDL_DestroyTexture(texture_symbole_fin_de_partie_defaite);}
+					if (texture_bombe != NULL)
+					{SDL_DestroyTexture(texture_bombe);}
+					if (texture_bombe_finale != NULL)
+					{SDL_DestroyTexture(texture_bombe_finale);}
+					if (texture_drapeau != NULL)
+					{SDL_DestroyTexture(texture_drapeau);}
+					if (texture_drapeau_mal_place != NULL)
+					{SDL_DestroyTexture(texture_drapeau_mal_place);}
+					
+					SDL_DestroyTexture(_texture_podium);
+					SDL_DestroyTexture(__texture_podium);
+					SDL_DestroyTexture(_texture_pause);
+					SDL_DestroyTexture(__texture_pause);
+					SDL_DestroyTexture(_texture_victoire);
+					SDL_DestroyTexture(__texture_victoire);
+					SDL_DestroyTexture(_texture_defaite);
+					SDL_DestroyTexture(__texture_defaite);
+					SDL_DestroyTexture(_texture_drapeaux);
+					SDL_DestroyTexture(__texture_drapeaux);
+					SDL_DestroyTexture(_texture_drapeaux_mal_places);
+					SDL_DestroyTexture(__texture_drapeaux_mal_places);
+					SDL_DestroyTexture(_texture_bombes);
+					SDL_DestroyTexture(__texture_bombes);
+					SDL_DestroyTexture(_texture_bombe_cliquee);
+					SDL_DestroyTexture(__texture_bombe_cliquee);
+					
+					texture_icone_podium = IMG_LoadTexture(rend, icone_podium);
+					texture_symbole_pause = IMG_LoadTexture(rend, symbole_pause);
+					texture_symbole_fin_de_partie = IMG_LoadTexture(rend, symbole_fin_de_partie);
+					texture_symbole_fin_de_partie_defaite = IMG_LoadTexture(rend, symbole_fin_de_partie);
+					texture_bombe = IMG_LoadTexture(rend, image_bombe);
+					texture_bombe_finale = IMG_LoadTexture(rend, image_bombe);
+					texture_drapeau = IMG_LoadTexture(rend, icone_drapeau);
+					texture_drapeau_mal_place = IMG_LoadTexture(rend, icone_drapeau);
+					
+					SDL_SetTextureColorMod(texture_icone_podium, couleur_podium.r, couleur_podium.g, couleur_podium.b);
+					SDL_SetTextureColorMod(texture_symbole_pause, couleur_pause.r, couleur_pause.g, couleur_pause.b);
+					SDL_SetTextureColorMod(texture_symbole_fin_de_partie, couleur_victoire.r, couleur_victoire.g, couleur_victoire.b);
+					SDL_SetTextureColorMod(texture_symbole_fin_de_partie_defaite, couleur_defaite.r, couleur_defaite.g, couleur_defaite.b);
+					SDL_SetTextureColorMod(texture_drapeau, couleur_drapeaux.r, couleur_drapeaux.g, couleur_drapeaux.b);
+					SDL_SetTextureColorMod(texture_drapeau_mal_place, couleur_drapeaux_mal_places.r, couleur_drapeaux_mal_places.g, couleur_drapeaux_mal_places.b);
+					SDL_SetTextureColorMod(texture_bombe, couleur_bombes.r, couleur_bombes.g, couleur_bombes.b);
+					SDL_SetTextureColorMod(texture_bombe_finale, couleur_bombe_cliquee.r, couleur_bombe_cliquee.g, couleur_bombe_cliquee.b);
+					return;
+				}
+				break;
+			}
+		}
+	}
 }
 
 void mod_icones_perso ()
 //Permet de charger et utiliser ses propres icones personalisées
 {
-	//...
+	enum zone
+	{
+		//ailleurs = 0,
+		podium = 1,
+		pause,
+		victoire,
+		defaite,
+		drapeau,
+		drapeau_mal_place,
+		bombe,
+		bombe_cliquee,
+		reinitialiser = 10,
+		termine
+	};
+	
+	SDL_Event ev;
+	enum zone focus = 0;
+	enum zone curseur = 0;
+	char symbole_fin_de_partie_defaite[sizeof(symbole_fin_de_partie)];
+	char icone_drapeau_mal_place[sizeof(icone_drapeau)];
+	char image_bombe_finale[sizeof(image_bombe)];
+	
+	//Rectanles d'affichage symboles:
+	SDL_Rect rect_podium = {20 + (xmax - 580) / 2, 40, 50, 50};
+	SDL_Rect rect_pause = {20 + (xmax - 580) / 2, 105, 50, 50};
+	SDL_Rect rect_victoire = {20 + (xmax - 580) / 2, 170, 50, 50};
+	SDL_Rect rect_defaite = {20 + (xmax - 580) / 2, 235, 50, 50};
+	SDL_Rect rect_drapeaux = {20 + (xmax - 580) / 2, 300, 50, 50};
+	SDL_Rect rect_drapeaux_mal_places = {20 + (xmax - 580) / 2, 365, 50, 50};
+	SDL_Rect rect_bombes = {20 + (xmax - 580) / 2, 430, 50, 50};
+	SDL_Rect rect_bombe_cliquee = {20 + (xmax - 580) / 2, 495, 50, 50};
+	
+	//Textures des symboles (elles doivent être refaites, vu que ce n'est pas le même renderer...):
+	SDL_Texture* texture_podium = IMG_LoadTexture(rend_r, icone_podium);
+	SDL_Texture* texture_pause = IMG_LoadTexture(rend_r, symbole_pause);
+	SDL_Texture* texture_victoire = IMG_LoadTexture(rend_r, symbole_fin_de_partie);
+	SDL_Texture* texture_defaite = IMG_LoadTexture(rend_r, symbole_fin_de_partie);
+	SDL_Texture* texture_drapeaux = IMG_LoadTexture(rend_r, icone_drapeau);
+	SDL_Texture* texture_drapeaux_mal_places = IMG_LoadTexture(rend_r, icone_drapeau);
+	SDL_Texture* texture_bombes = IMG_LoadTexture(rend_r, image_bombe);
+	SDL_Texture* texture_bombe_cliquee = IMG_LoadTexture(rend_r, image_bombe);
+	
+	//Retranscription de la source de certaines icones:
+	strcpy(symbole_fin_de_partie_defaite, symbole_fin_de_partie);
+	strcpy(icone_drapeau_mal_place, icone_drapeau);
+	strcpy(image_bombe_finale, image_bombe);
+	
+	
+	while (1)
+	{
+		//Arrière-plan:
+		SDL_SetRenderDrawColor(rend_r, fond.r, fond.g, fond.b, fond.a);
+		SDL_RenderClear(rend_r);
+		
+		//Titre:
+		TTF_SetFontStyle(police, TTF_STYLE_UNDERLINE);
+		afficher_txt_centre("Charger de nouveaux symboles:", 0, xmax, 10, police, couleur_timer, rend_r);
+		TTF_SetFontStyle(police, TTF_STYLE_NORMAL);
+		
+		//Boutons:
+		for (int compteur = 1; compteur <= 8; compteur++)
+		{
+			rect_arrondi(20 + (xmax - 580) / 2, compteur * 65 - 25, 50, 50, couleur_boutons, fond, rend_r);
+			if (curseur == compteur)
+			{rect_arrondi(20 + (xmax - 580) / 2, compteur * 65 - 25, 50, 50, couleur_selection_curseur, fond, rend_r);}
+			if (focus == compteur)
+			{rectangle(20 + (xmax - 580) / 2, compteur * 65 - 25, 50, 50, 4, couleur_selection_clavier, fond, rend_r);}
+		}
+		
+		//Texte et icones:
+		afficher_txt("Symbole du podium", 80 + (xmax - 580) / 2, 55, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, texture_podium, NULL, &rect_podium);
+		
+		afficher_txt("Symbole de pause", 80 + (xmax - 580) / 2, 120, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, texture_pause, NULL, &rect_pause);
+		
+		afficher_txt("Symbole de victoire", 80 + (xmax - 580) / 2, 185, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, texture_victoire, NULL, &rect_victoire);
+		
+		afficher_txt("Symbole de défaite", 80 + (xmax - 580) / 2, 250, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, texture_defaite, NULL, &rect_defaite);
+		
+		afficher_txt("Drapeaux", 80 + (xmax - 580) / 2, 315, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, texture_drapeaux, NULL, &rect_drapeaux);
+		
+		afficher_txt("Drapeaux mal placés", 80 + (xmax - 580) / 2, 380, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, texture_drapeaux_mal_places, NULL, &rect_drapeaux_mal_places);
+		
+		afficher_txt("Bombes", 80 + (xmax - 580) / 2, 445, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, texture_bombes, NULL, &rect_bombes);
+		
+		afficher_txt("Bombe cliquée", 80 + (xmax - 580) / 2, 510, 200, police, couleur_timer, rend_r);
+		SDL_RenderCopy(rend_r, texture_bombe_cliquee, NULL, &rect_bombe_cliquee);
+		
+		//Explications:
+		afficher_txt("Cliquer sur un symbole pour en charger un nouveau.\nToutes les images doivent avoir un fond transparent!\nSi l'image choisie n'a pas les bonnes dimensions, elle sera étirée ou compressée en conséquence.\nLes \
+images devraient déjà être de la bonne couleur, car le programme permet seulement de colorier les symboles par défaut.\nSi vous remplacez les images par défaut par les vôtres, ces dernières devront être blanches et avoir le même \
+nom que les anciennes. Vous devrez aussi redémarrer le programme.", 310 + (xmax - 580) / 2, 45, 240 + (xmax - 580) / 2, petite_police, couleur_txt_boutons, rend_r);
+		afficher_txt("Seul le drapeau a un fallback sans image.", 250 + (xmax - 580), ymax - 60, 200, petite_police, couleur_timer, rend_r);
+		
+		//Boutons d'action:
+		rect_arrondi(xmax - 150, ymax - 120, 130, 40, couleur_boutons, fond, rend_r);
+		if (focus == reinitialiser)
+		{rect_arrondi(xmax - 150, ymax - 120, 130, 40, couleur_selection_clavier, fond, rend_r);}
+		if (curseur == reinitialiser)
+		{rect_arrondi(xmax - 150, ymax - 120, 130, 40, couleur_selection_curseur, fond, rend_r);}
+		afficher_txt_centre("Réinitialiser", xmax - 150, xmax - 20, ymax - 110, police, couleur_txt_boutons, rend_r);
+		
+		rect_arrondi(xmax - 150, ymax - 60, 130, 40, couleur_boutons, fond, rend_r);
+		if (focus == termine)
+		{rect_arrondi(xmax - 150, ymax - 60, 130, 40, couleur_selection_clavier, fond, rend_r);}
+		if (curseur == termine)
+		{rect_arrondi(xmax - 150, ymax - 60, 130, 40, couleur_selection_curseur, fond, rend_r);}
+		afficher_txt_centre("Terminé", xmax - 150, xmax - 20, ymax - 50, police, couleur_txt_boutons, rend_r);
+		
+		SDL_RenderPresent(rend_r);
+		SDL_WaitEvent(&ev);
+		
+		switch (ev.type)
+		{
+		case SDL_WINDOWEVENT:
+			if (ev.window.windowID != ID_fenetre_reglages) //si l'utilisateur joue avec l'autre fenêtre (lui donnant ainsi le focus, déclenchant cet event), on veut le ramener dans les réglages
+			{SDL_RaiseWindow(fenetre_reglages); SDL_FlashWindow(fenetre_reglages, SDL_FLASH_UNTIL_FOCUSED);}
+			else if (ev.window.event == SDL_WINDOWEVENT_CLOSE) //SDL_QUIT ne fonctionne pas avec plusieurs fenêtres ouvertes...
+			{return;}
+			else
+			{
+				SDL_GetWindowSize(fenetre_reglages, &xmax, &ymax);
+				
+				rect_podium.x = 20 + (xmax - 580) / 2;
+				rect_pause.x = 20 + (xmax - 580) / 2;
+				rect_victoire.x = 20 + (xmax - 580) / 2;
+				rect_defaite.x = 20 + (xmax - 580) / 2;
+				rect_drapeaux.x = 20 + (xmax - 580) / 2;
+				rect_drapeaux_mal_places.x = 20 + (xmax - 580) / 2;
+				rect_bombes.x = 20 + (xmax - 580) / 2;
+				rect_bombe_cliquee.x = 20 + (xmax - 580) / 2;
+			}
+			break;
+		
+		case SDL_MOUSEMOTION:
+			if (ev.motion.x >= 20 + (xmax - 580) / 2 && ev.motion.x <= 70 + (xmax - 580) / 2)
+			{
+				curseur = 0;
+				for (int compteur = 0; compteur < 8; compteur++)
+				{
+					if (ev.motion.y >= 40 + compteur * 65 && ev.motion.y <= 90 + compteur * 65)
+					{curseur = podium + compteur;}
+				}
+			}
+			else if (ev.motion.x >= xmax - 150 && ev.motion.x <= xmax - 20 && ev.motion.y >= ymax - 120 && ev.motion.y <= ymax - 80)
+			{curseur = reinitialiser;}
+			else if (ev.motion.x >= xmax - 150 && ev.motion.x <= xmax - 20 && ev.motion.y >= ymax - 60 && ev.motion.y <= ymax - 20)
+			{curseur = termine;}
+			else
+			{curseur = 0;}
+			break;
+		
+		case SDL_KEYDOWN:
+			switch (ev.key.keysym.sym)
+			{
+			case SDLK_ESCAPE:
+				return;
+			
+			case SDLK_TAB:
+				if (focus >= podium && focus <= bombe_cliquee)
+				{focus = reinitialiser;}
+				else
+				{focus = podium;}
+				break;
+			
+			case SDLK_UP:
+				if (focus > podium && focus <= bombe_cliquee)
+				{focus--;}
+				else if (focus == podium)
+				{focus = bombe_cliquee;}
+				else if (focus == termine)
+				{focus = reinitialiser;}
+				else if (focus == reinitialiser)
+				{focus = termine;}
+				else if (!focus)
+				{focus = podium;}
+				break;
+			
+			case SDLK_DOWN:
+				if (focus >= podium && focus < bombe_cliquee)
+				{focus++;}
+				else if (focus == bombe_cliquee || !focus)
+				{focus = podium;}
+				else if (focus == termine)
+				{focus = reinitialiser;}
+				else if (focus == reinitialiser)
+				{focus = termine;}
+				break;
+			
+			case SDLK_RIGHT:
+			case SDLK_LEFT:
+				if (!focus)
+				{focus++;}
+				break;
+			
+			case SDLK_RETURN:
+			case SDLK_KP_ENTER:
+				switch (focus)
+				{
+				case podium:
+					demander_txt("Charger un nouvel icone", "Pour charger un nouveau symbole de podium, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
+cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", icone_podium, sizeof(icone_podium), fenetre_reglages);
+					if (texture_icone_podium != NULL)
+					{SDL_DestroyTexture(texture_icone_podium);}
+					texture_icone_podium = IMG_LoadTexture(rend, icone_podium);
+					break;
+				
+				case pause:
+					demander_txt("Charger un nouvel icone", "Pour charger un nouveau symbole de pause, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
+cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", symbole_pause, sizeof(symbole_pause), fenetre_reglages);
+					if (texture_symbole_pause != NULL)
+					{SDL_DestroyTexture(texture_symbole_pause);}
+					texture_symbole_pause = IMG_LoadTexture(rend, symbole_pause);
+					break;
+				
+				case victoire:
+					demander_txt("Charger un nouvel icone", "Pour charger un nouveau symbole de victoire, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
+cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", symbole_fin_de_partie, sizeof(symbole_fin_de_partie), fenetre_reglages);
+					if (texture_symbole_fin_de_partie != NULL)
+					{SDL_DestroyTexture(texture_symbole_fin_de_partie);}
+					texture_symbole_fin_de_partie = IMG_LoadTexture(rend, symbole_fin_de_partie);
+					break;
+				
+				case defaite:
+					demander_txt("Charger un nouvel icone", "Pour charger un nouveau symbole de défaite, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
+cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", symbole_fin_de_partie_defaite, sizeof(symbole_fin_de_partie_defaite), fenetre_reglages);
+					if (texture_symbole_fin_de_partie_defaite != NULL)
+					{SDL_DestroyTexture(texture_symbole_fin_de_partie_defaite);}
+					texture_symbole_fin_de_partie_defaite = IMG_LoadTexture(rend, symbole_fin_de_partie_defaite);
+					break;
+				
+				case drapeau:
+					demander_txt("Charger un nouvel icone", "Pour charger une nouvelle image de drapeau, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
+cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", icone_drapeau, sizeof(icone_drapeau), fenetre_reglages);
+					if (texture_drapeau != NULL)
+					{SDL_DestroyTexture(texture_drapeau);}
+					texture_drapeau = IMG_LoadTexture(rend, icone_drapeau);
+					break;
+				
+				case drapeau_mal_place:
+					demander_txt("Charger un nouvel icone", "Pour charger une nouvelle image de drapeau mal placé, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \
+\"source\".\n2. Dans cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan \
+doit être transparent. Les dimensions idéales sont 80x80 pixels.", icone_drapeau_mal_place, sizeof(icone_drapeau_mal_place), fenetre_reglages);
+					if (texture_drapeau_mal_place != NULL)
+					{SDL_DestroyTexture(texture_drapeau_mal_place);}
+					texture_drapeau_mal_place = IMG_LoadTexture(rend, icone_drapeau_mal_place);
+					break;
+				
+				case bombe:
+					demander_txt("Charger un nouvel icone", "Pour charger une nouvelle image de bombe, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
+cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", image_bombe, sizeof(image_bombe), fenetre_reglages);
+					if (texture_bombe != NULL)
+					{SDL_DestroyTexture(texture_bombe);}
+					texture_bombe = IMG_LoadTexture(rend, image_bombe);
+					break;
+					
+				case bombe_cliquee:
+					demander_txt("Charger un nouvel icone", "Pour charger une nouvelle image de bombe cliquée, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. \
+Dans cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", image_bombe_finale, sizeof(image_bombe_finale), fenetre_reglages);
+					if (texture_bombe_finale != NULL)
+					{SDL_DestroyTexture(texture_bombe_finale);}
+					texture_bombe_finale = IMG_LoadTexture(rend, image_bombe_finale);
+					break;
+				
+				case reinitialiser:
+					strcpy(param[1].option[0].nom, "Utiliser les symboles pleins");
+					mod_theme();
+					break;
+				
+				case termine:
+					return;
+				}
+				
+				//À faire: Détruire les anciennes textures, faire la même chose pour le clavier et tester (ça bug, je le sais).
+				if (texture_podium != NULL)
+				{SDL_DestroyTexture(texture_podium);}
+				if (texture_pause != NULL)
+				{SDL_DestroyTexture(texture_pause);}
+				if (texture_victoire != NULL)
+				{SDL_DestroyTexture(texture_victoire);}
+				if (texture_defaite != NULL)
+				{SDL_DestroyTexture(texture_defaite);}
+				if (texture_drapeaux != NULL)
+				{SDL_DestroyTexture(texture_drapeaux);}
+				if (texture_drapeaux_mal_places != NULL)
+				{SDL_DestroyTexture(texture_drapeaux_mal_places);}
+				if (texture_bombes != NULL)
+				{SDL_DestroyTexture(texture_bombes);}
+				if (texture_bombe_cliquee != NULL)
+				{SDL_DestroyTexture(texture_bombe_cliquee);}
+				
+				texture_podium = IMG_LoadTexture(rend_r, icone_podium);
+				texture_pause = IMG_LoadTexture(rend_r, symbole_pause);
+				texture_victoire = IMG_LoadTexture(rend_r, symbole_fin_de_partie);
+				texture_defaite = IMG_LoadTexture(rend_r, symbole_fin_de_partie_defaite);
+				texture_drapeaux = IMG_LoadTexture(rend_r, icone_drapeau);
+				texture_drapeaux_mal_places = IMG_LoadTexture(rend_r, icone_drapeau_mal_place);
+				texture_bombes = IMG_LoadTexture(rend_r, image_bombe);
+				texture_bombe_cliquee = IMG_LoadTexture(rend_r, image_bombe_finale);
+				break;
+			}
+			break;
+		
+		case SDL_MOUSEBUTTONDOWN:
+			switch (curseur)
+			{
+			case podium:
+				demander_txt("Charger un nouvel icone", "Pour charger un nouveau symbole de podium, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
+cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", icone_podium, sizeof(icone_podium), fenetre_reglages);
+				if (texture_icone_podium != NULL)
+				{SDL_DestroyTexture(texture_icone_podium);}
+				texture_icone_podium = IMG_LoadTexture(rend, icone_podium);
+				break;
+			
+			case pause:
+				demander_txt("Charger un nouvel icone", "Pour charger un nouveau symbole de pause, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
+cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", symbole_pause, sizeof(symbole_pause), fenetre_reglages);
+				if (texture_symbole_pause != NULL)
+				{SDL_DestroyTexture(texture_symbole_pause);}
+				texture_symbole_pause = IMG_LoadTexture(rend, symbole_pause);
+				break;
+			
+			case victoire:
+				demander_txt("Charger un nouvel icone", "Pour charger un nouveau symbole de victoire, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
+cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", symbole_fin_de_partie, sizeof(symbole_fin_de_partie), fenetre_reglages);
+				if (texture_symbole_fin_de_partie != NULL)
+				{SDL_DestroyTexture(texture_symbole_fin_de_partie);}
+				texture_symbole_fin_de_partie = IMG_LoadTexture(rend, symbole_fin_de_partie);
+				break;
+			
+			case defaite:
+				demander_txt("Charger un nouvel icone", "Pour charger un nouveau symbole de défaite, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
+cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", symbole_fin_de_partie_defaite, sizeof(symbole_fin_de_partie_defaite), fenetre_reglages);
+				if (texture_symbole_fin_de_partie_defaite != NULL)
+				{SDL_DestroyTexture(texture_symbole_fin_de_partie_defaite);}
+				texture_symbole_fin_de_partie_defaite = IMG_LoadTexture(rend, symbole_fin_de_partie_defaite);
+				break;
+			
+			case drapeau:
+				demander_txt("Charger un nouvel icone", "Pour charger une nouvelle image de drapeau, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
+cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", icone_drapeau, sizeof(icone_drapeau), fenetre_reglages);
+				if (texture_drapeau != NULL)
+				{SDL_DestroyTexture(texture_drapeau);}
+				texture_drapeau = IMG_LoadTexture(rend, icone_drapeau);
+				break;
+			
+			case drapeau_mal_place:
+				demander_txt("Charger un nouvel icone", "Pour charger une nouvelle image de drapeau mal placé, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \
+\"source\".\n2. Dans cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan \
+doit être transparent. Les dimensions idéales sont 80x80 pixels.", icone_drapeau_mal_place, sizeof(icone_drapeau_mal_place), fenetre_reglages);
+				if (texture_drapeau_mal_place != NULL)
+				{SDL_DestroyTexture(texture_drapeau_mal_place);}
+				texture_drapeau_mal_place = IMG_LoadTexture(rend, icone_drapeau_mal_place);
+				break;
+			
+			case bombe:
+				demander_txt("Charger un nouvel icone", "Pour charger une nouvelle image de bombe, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
+cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", image_bombe, sizeof(image_bombe), fenetre_reglages);
+				if (texture_bombe != NULL)
+				{SDL_DestroyTexture(texture_bombe);}
+				texture_bombe = IMG_LoadTexture(rend, image_bombe);
+				break;
+				
+			case bombe_cliquee:
+				demander_txt("Charger un nouvel icone", "Pour charger une nouvelle image de bombe cliquée, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. \
+Dans cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
+transparent. Les dimensions idéales sont 80x80 pixels.", image_bombe_finale, sizeof(image_bombe_finale), fenetre_reglages);
+				if (texture_bombe_finale != NULL)
+				{SDL_DestroyTexture(texture_bombe_finale);}
+				texture_bombe_finale = IMG_LoadTexture(rend, image_bombe_finale);
+				break;
+			
+			case reinitialiser:
+				strcpy(param[1].option[0].nom, "Utiliser les symboles pleins");
+				mod_theme();
+				break;
+			
+			case termine:
+				return;
+			}
+			
+			//À faire: Détruire les anciennes textures, faire la même chose pour le clavier et tester (ça bug, je le sais).
+			if (texture_podium != NULL)
+			{SDL_DestroyTexture(texture_podium);}
+			if (texture_pause != NULL)
+			{SDL_DestroyTexture(texture_pause);}
+			if (texture_victoire != NULL)
+			{SDL_DestroyTexture(texture_victoire);}
+			if (texture_defaite != NULL)
+			{SDL_DestroyTexture(texture_defaite);}
+			if (texture_drapeaux != NULL)
+			{SDL_DestroyTexture(texture_drapeaux);}
+			if (texture_drapeaux_mal_places != NULL)
+			{SDL_DestroyTexture(texture_drapeaux_mal_places);}
+			if (texture_bombes != NULL)
+			{SDL_DestroyTexture(texture_bombes);}
+			if (texture_bombe_cliquee != NULL)
+			{SDL_DestroyTexture(texture_bombe_cliquee);}
+			
+			texture_podium = IMG_LoadTexture(rend_r, icone_podium);
+			texture_pause = IMG_LoadTexture(rend_r, symbole_pause);
+			texture_victoire = IMG_LoadTexture(rend_r, symbole_fin_de_partie);
+			texture_defaite = IMG_LoadTexture(rend_r, symbole_fin_de_partie_defaite);
+			texture_drapeaux = IMG_LoadTexture(rend_r, icone_drapeau);
+			texture_drapeaux_mal_places = IMG_LoadTexture(rend_r, icone_drapeau_mal_place);
+			texture_bombes = IMG_LoadTexture(rend_r, image_bombe);
+			texture_bombe_cliquee = IMG_LoadTexture(rend_r, image_bombe_finale);
+			break;
+		}
+	}
 }
 
 void mod_popup_quitter ()
@@ -1625,4 +2819,666 @@ void mod_dimensions_fenetre (int* x, int* y, char nom_fenetre[])
 		if (*y < 570)
 		{*y = 570;}
 	}
+}
+
+_Bool mod_couleur (SDL_Color* ptr_couleur, char titre[])
+//Permet à l'utilisateur de choisir une nouvelle couleur pour un élément graphique du programme.
+//Doit recevoir en paramètre un pointeur vers la structure SDL_Color associé à cet élément lors du premier appel à la fonction.
+//Ensuite, ptr_couleur doit être NULL pour continuer à travailler sur le même élément.
+//Renvoie 0 si ce n'est pas terminé et 1 lorsque tout est terminé.
+{
+	enum zone
+	{
+		//0 = ailleurs...
+		rouge = 1,
+		vert,
+		bleu,
+		alpha,
+		bouton_color_picker = 9,
+		annuler = 10,
+		appliquer,
+		termine
+	};
+	
+	SDL_Event ev;
+	SDL_Surface* surface_nbre;
+	static SDL_Color* couleur;
+	SDL_Color couleur_modifiee;
+	FILE* cp_return;
+	static enum zone focus = 0;
+	static enum zone curseur = 0;
+	int largeur_supp = xmax - 580;
+	static _Bool keymod = 0;
+	static char r[4], g[4], b[4], a[4];
+	char cp_value[50] = "";
+	char nbre_a_afficher[5] = "?"; //string qui contiendra le nbre à transformer en texture
+	
+	if (ptr_couleur != NULL)
+	{
+		couleur = ptr_couleur;
+		couleur_modifiee = *ptr_couleur;
+		
+		//Conversion des valeurs numériques rgba en strings de 1 à 3 caractères:
+		sprintf(r, "%d", couleur->r);
+		sprintf(g, "%d", couleur->g);
+		sprintf(b, "%d", couleur->b);
+		sprintf(a, "%d", couleur->a);
+	}
+	else
+	{
+		sscanf(r, "%hhd", &couleur_modifiee.r);
+		sscanf(g, "%hhd", &couleur_modifiee.g);
+		sscanf(b, "%hhd", &couleur_modifiee.b);
+		sscanf(a, "%hhd", &couleur_modifiee.a);
+	}
+	
+	//Pop-up:
+	rectangle(60, 100, xmax - 120, ymax - 200, 0, couleur_boutons, fond, rend_r);
+	rectangle(60, 100, xmax - 120, ymax - 200, 5, couleur_timer, fond, rend_r);
+	
+	//Titre:
+	TTF_SetFontStyle(police, TTF_STYLE_UNDERLINE);
+	afficher_txt_centre(titre, 60, xmax - 60, 115, police, couleur_txt_boutons, rend_r);
+	TTF_SetFontStyle(police, TTF_STYLE_NORMAL);
+	
+	//Boîtes de texte RGBA:
+	for (int compteur = 0; compteur < 4; compteur++)
+	{
+		rectangle(170 + largeur_supp / 2, 160 + 60 * compteur, 130, 40, 0, fond, couleur_boutons, rend_r);
+		if (focus == compteur + 1)
+		{rectangle(170 + largeur_supp / 2, 160 + 60 * compteur, 130, 40, 0, couleur_selection_curseur, couleur_boutons, rend_r);}
+		rectangle(170 + largeur_supp / 2, 160 + 60 * compteur, 130, 40, 4, couleur_txt_boutons, couleur_boutons, rend_r);
+	}
+	
+	afficher_txt("Rouge:", 96 + largeur_supp / 2, 170, 100, police, couleur_txt_boutons, rend_r);
+	afficher_txt(r, 180 + largeur_supp / 2, 170, 110, police, couleur_timer, rend_r);
+	
+	afficher_txt("Vert:", 114 + largeur_supp / 2, 230, 100, police, couleur_txt_boutons, rend_r);
+	afficher_txt(g, 180 + largeur_supp / 2, 230, 110, police, couleur_timer, rend_r);
+	
+	afficher_txt("Bleu:", 112 + largeur_supp / 2, 290, 100, police, couleur_txt_boutons, rend_r);
+	afficher_txt(b, 180 + largeur_supp / 2, 290, 110, police, couleur_timer, rend_r);
+	
+	afficher_txt("Alpha:", 100 + largeur_supp / 2, 350, 100, police, couleur_txt_boutons, rend_r);
+	afficher_txt(a, 180 + largeur_supp / 2, 350, 110, police, couleur_timer, rend_r);
+	
+	//Échantillon:
+	rectangle(360 + largeur_supp / 2, 160, 100, 100, 0, couleur_modifiee, couleur_boutons, rend_r);
+	rectangle(360 + largeur_supp / 2, 160, 100, 100, 4, couleur_txt_boutons, couleur_boutons, rend_r);
+	rectangle(430 + largeur_supp / 2, 150, 40, 40, 0, *couleur, couleur_boutons, rend_r);
+	rectangle(430 + largeur_supp / 2, 150, 40, 40, 3, couleur_txt_boutons, couleur_boutons, rend_r);
+	SDL_SetColor(couleur_modifiee, rend_r);
+	SDL_RenderDrawPoint(rend_r, 429 + largeur_supp / 2, 190);
+	
+	//Bouton et explication du color picker:
+	rect_arrondi(340 + largeur_supp / 2, 270, 140, 40, fond, couleur_boutons, rend_r);
+	if (focus == bouton_color_picker)
+	{rect_arrondi(340 + largeur_supp / 2, 270, 140, 40, couleur_selection_clavier, couleur_boutons, rend_r);}
+	if (curseur == bouton_color_picker)
+	{rect_arrondi(340 + largeur_supp / 2, 270, 140, 40, couleur_selection_curseur, couleur_boutons, rend_r);}
+	afficher_txt_centre("Color Picker", 340 + largeur_supp / 2, 480 + largeur_supp / 2, 280, police, couleur_timer, rend_r);
+	afficher_txt("Pour en savoir plus sur le color picker, faites un clic droit sur le bouton.", 330 + largeur_supp / 2, 320, 160 + largeur_supp / 2, petite_police, couleur_txt_boutons, rend_r);
+	
+	//Boutons du bas:
+	rect_arrondi(xmax - 480, ymax - 160, 120, 40, fond, couleur_boutons, rend_r);
+	if (focus == annuler)
+	{rect_arrondi(xmax - 480, ymax - 160, 120, 40, couleur_selection_clavier, couleur_boutons, rend_r);}
+	if (curseur == annuler)
+	{rect_arrondi(xmax - 480, ymax - 160, 120, 40, couleur_selection_curseur, couleur_boutons, rend_r);}
+	afficher_txt_centre("Annuler", xmax - 480, xmax - 360, ymax - 150, police, couleur_timer, rend_r);
+	
+	rect_arrondi(xmax - 340, ymax - 160, 120, 40, fond, couleur_boutons, rend_r);
+	if (focus == appliquer)
+	{rect_arrondi(xmax - 340, ymax - 160, 120, 40, couleur_selection_clavier, couleur_boutons, rend_r);}
+	if (curseur == appliquer)
+	{rect_arrondi(xmax - 340, ymax - 160, 120, 40, couleur_selection_curseur, couleur_boutons, rend_r);}
+	afficher_txt_centre("Appliquer", xmax - 340, xmax - 220, ymax - 150, police, couleur_timer, rend_r);
+	
+	rect_arrondi(xmax - 200, ymax - 160, 120, 40, fond, couleur_boutons, rend_r);
+	if (focus == termine)
+	{rect_arrondi(xmax - 200, ymax - 160, 120, 40, couleur_selection_clavier, couleur_boutons, rend_r);}
+	if (curseur == termine)
+	{rect_arrondi(xmax - 200, ymax - 160, 120, 40, couleur_selection_curseur, couleur_boutons, rend_r);}
+	afficher_txt_centre("Terminé", xmax - 200, xmax - 80, ymax - 150, police, couleur_timer, rend_r);
+	
+	//Affichage et gestion des events:
+	SDL_RenderPresent(rend_r);
+	SDL_WaitEvent(&ev);
+	
+	switch (ev.type)
+	{
+	case SDL_WINDOWEVENT:
+		if (ev.window.windowID != ID_fenetre_reglages) //si l'utilisateur joue avec l'autre fenêtre (lui donnant ainsi le focus, déclenchant cet event), on veut le ramener dans les réglages
+		{SDL_RaiseWindow(fenetre_reglages); SDL_FlashWindow(fenetre_reglages, SDL_FLASH_UNTIL_FOCUSED);}
+		else if (ev.window.event == SDL_WINDOWEVENT_CLOSE) //SDL_QUIT ne fonctionne pas avec plusieurs fenêtres ouvertes...
+		{focus = 0; curseur = 0; keymod = 0; return 1;}
+		else
+		{SDL_GetWindowSize(fenetre_reglages, &xmax, &ymax);}
+		break;
+	
+	case SDL_MOUSEMOTION:
+		if (ev.motion.y >= ymax - 160 && ev.motion.y <= ymax - 120)
+		{
+			SDL_SetCursor(curseur_normal);
+			curseur = 0;
+			for (int compteur = 0; compteur < 3; compteur++)
+			{
+				if (ev.motion.x >= xmax - 480 + 140 * compteur && ev.motion.x <= xmax - 360 + 140 * compteur)
+				{curseur = annuler + compteur;}
+			}
+		}
+		else if (ev.motion.x >= 170 + largeur_supp / 2 && ev.motion.x <= 300 + largeur_supp / 2)
+		{
+			curseur = 0;
+			for (int compteur = 0; compteur < 4; compteur++)
+			{
+				if (ev.motion.y >= 160 + 60 * compteur && ev.motion.y <= 200 + 60 * compteur)
+				{curseur = rouge + compteur; SDL_SetCursor(curseur_txt);}
+			}
+			if (!curseur)
+			{SDL_SetCursor(curseur_normal);}
+		}
+		else if (ev.motion.x >= 340 + largeur_supp / 2 && ev.motion.y >= 270 && ev.motion.x <= 480 + largeur_supp / 2 && ev.motion.y <= 310)
+		{curseur = bouton_color_picker;}
+		else
+		{curseur = 0; SDL_SetCursor(curseur_normal);}
+		break;
+	
+	case SDL_KEYDOWN:
+		switch (ev.key.keysym.sym)
+		{
+		case SDLK_ESCAPE:
+			focus = 0;
+			curseur = 0;
+			keymod = 0;
+			return 1;
+			break;
+		
+		case SDLK_TAB:
+			if (focus >= rouge && focus <= alpha)
+			{focus = bouton_color_picker;}
+			else if (focus == bouton_color_picker)
+			{focus = annuler;}
+			else
+			{focus = rouge;}
+			break;
+		
+		case SDLK_UP:
+			if (focus >= vert && focus <= alpha)
+			{focus--;}
+			else if (focus >= annuler && focus <= termine)
+			{focus = bouton_color_picker;}
+			else if (focus == rouge)
+			{focus = alpha;}
+			else if (!focus)
+			{focus++;}
+			break;
+		
+		case SDLK_DOWN:
+			if (focus >= rouge && focus < alpha)
+			{focus++;}
+			else if (focus == alpha)
+			{focus = rouge;}
+			else if (focus == bouton_color_picker)
+			{focus = appliquer;}
+			else if (!focus)
+			{focus++;}
+			break;
+		
+		case SDLK_LEFT:
+			if (focus == bouton_color_picker)
+			{focus = rouge;}
+			else if (focus == annuler)
+			{focus = termine;}
+			else if (!focus)
+			{focus++;}
+			else if (focus > annuler)
+			{focus--;}
+			break;
+		
+		case SDLK_RIGHT:
+			if (focus >= rouge && focus <= alpha)
+			{focus = bouton_color_picker;}
+			else if (!focus)
+			{focus = rouge;}
+			else if (focus == termine)
+			{focus = annuler;}
+			else if (focus != bouton_color_picker)
+			{focus++;}
+			break;
+		
+		case SDLK_LSHIFT:
+		case SDLK_RSHIFT:
+			keymod = 1;
+			break;
+		
+		case SDLK_RETURN:
+		case SDLK_KP_ENTER:
+			switch (focus)
+			{
+			case rouge:
+			case vert:
+			case bleu:
+			case alpha:
+				focus = 0;
+				break;
+			
+			case bouton_color_picker:
+				if (keymod)
+				{
+					demander_txt("Réglages du color picker", "Entrer ici la commande à exécuter pour ouvrir le color picker de votre choix.\n\nLe color picker est un programme externe et la commande préinscrite \
+(\"zenity --color-selection\") pourrait ne pas fonctionner, voire faire crasher le programme.\nZenity est un ensemble d'outils disponible sur les distributions Linux de type Debian/Ubuntu. Vous pouvez l'installer en entrant \
+la commande \"sudo apt install zenity\" dans votre terminal*.\n", color_picker, sizeof(color_picker), fenetre_reglages);
+					keymod = 0;
+				}
+				else
+				{
+					cp_return = popen(color_picker, "r"); //popen agit comme system, mais il nous permet d'intercepter ce que la commande imprime dans le terminal
+					fgets(cp_value, 49, cp_return); //copie de cette string ("rgb(R,G,B)") normalement affichée dans le terminal
+					pclose(cp_return); //fermeture du "pipe" créé par popen
+					if (extraction_rgb)
+					{extraire_rgba(cp_value, r, g, b, a);}
+				}
+				break;
+			
+			case annuler:
+				sprintf(r, "%d", couleur->r);
+				sprintf(g, "%d", couleur->g);
+				sprintf(b, "%d", couleur->b);
+				sprintf(a, "%d", couleur->a);
+				break;
+			
+			case appliquer:
+			case termine:
+				sscanf(r, "%hhd", &couleur->r);
+				sscanf(g, "%hhd", &couleur->g);
+				sscanf(b, "%hhd", &couleur->b);
+				sscanf(a, "%hhd", &couleur->a);
+				
+				if (couleur == &couleur_score) //Les textures des nombres affichées dans la grille étant loadées à l'avance, il faut faire ça ici aussi...
+				{
+					for (int compteur = 0; compteur < 8; compteur++)
+					{
+						if (texture_nbre[compteur] != NULL)
+						{SDL_DestroyTexture(texture_nbre[compteur]);}
+						else if (!erreur && (compteur > 0 || afficher_zeros))
+						{erreur = -14; printf("Erreur 14: La texture du chiffre %d n'a pas pu être chargée (au cas où vous ne l'auriez pas remarqué...).\n", compteur);}
+					}
+					for (int compteur = 1 - afficher_zeros; compteur <= 8; compteur++)
+					{
+						sprintf(nbre_a_afficher, "%d", compteur);
+						surface_nbre = TTF_RenderUTF8_Solid_Wrapped(police, nbre_a_afficher, couleur_score, taille);
+						taille_nbre[compteur].w = surface_nbre->w;
+						taille_nbre[compteur].h = surface_nbre->h;
+						texture_nbre[compteur] = SDL_CreateTextureFromSurface(rend, surface_nbre);
+						SDL_FreeSurface(surface_nbre);
+					}
+				}
+				
+				if (focus == termine)
+				{focus = 0; curseur = 0; keymod = 0; return 1;}
+				break;
+			}
+			break;
+		
+		case SDLK_BACKSPACE:
+			switch (focus)
+			{
+			case rouge:
+				if (r[1] == '\000')
+				{r[0] = '0';}
+				else
+				{tronquer(r);}
+				break;
+			
+			case vert:
+				if (g[1] == '\000')
+				{g[0] = '0';}
+				else
+				{tronquer(g);}
+				break;
+			
+			case bleu:
+				if (b[1] == '\000')
+				{b[0] = '0';}
+				else
+				{tronquer(b);}
+				break;
+			
+			case alpha:
+				if (a[1] == '\000')
+				{a[0] = '0';}
+				else
+				{tronquer(a);}
+				break;
+			}
+			break;
+		
+		case SDLK_0: case SDLK_KP_0:
+		case SDLK_1: case SDLK_KP_1:
+		case SDLK_2: case SDLK_KP_2:
+		case SDLK_3: case SDLK_KP_3:
+		case SDLK_4: case SDLK_KP_4:
+		case SDLK_5: case SDLK_KP_5:
+		case SDLK_6: case SDLK_KP_6:
+		case SDLK_7: case SDLK_KP_7:
+		case SDLK_8: case SDLK_KP_8:
+		case SDLK_9: case SDLK_KP_9:
+			switch (focus)
+			{
+			case rouge:
+				if (!strcmp(r, "0")) //enlève le zéro unique si nécessaire
+				{r[0] = '\000';}
+				if (r[0] != '\000' && r[0] > '2' && r[1] != '\000') {} //bloque les nombres de 300 et plus
+				else if (r[1] != '\000' && r[0] == '2' && (r[1] > '5' || ((ev.key.keysym.sym > SDLK_5 && ev.key.keysym.sym <= SDLK_9) || (ev.key.keysym.sym > SDLK_KP_5 && ev.key.keysym.sym <= SDLK_KP_9)))) {}
+				else if (strlen(r) < 3) //ajoute le chiffre à la valeur                                        \-> bloque les nombres de 256 à 259 et de 260 à 299
+				{
+					if (ev.key.keysym.sym < SDLK_KP_1 || ev.key.keysym.sym > SDLK_KP_0)
+					{r[strlen(r)] = ev.key.keysym.sym - SDLK_0 + '0';}
+					else if (ev.key.keysym.sym == SDLK_KP_0) //keypad
+					{r[strlen(r)] = '0';}
+					else //keypad
+					{r[strlen(r)] = ev.key.keysym.sym - SDLK_KP_1 + 1 + '0';}
+				}
+				break;
+			
+			case vert:
+				if (!strcmp(g, "0")) //enlève le zéro unique si nécessaire
+				{g[0] = '\000';}
+				if (g[0] != '\000' && g[0] > '2' && g[1] != '\000') {} //bloque les nombres de 300 et plus
+				else if (g[1] != '\000' && g[0] == '2' && (g[1] > '5' || ((ev.key.keysym.sym > SDLK_5 && ev.key.keysym.sym <= SDLK_9) || (ev.key.keysym.sym > SDLK_KP_5 && ev.key.keysym.sym <= SDLK_KP_9)))) {}
+				else if (strlen(g) < 3) //ajoute le chiffre à la valeur                                        \-> bloque les nombres de 256 à 259 et de 260 à 299
+				{
+					if (ev.key.keysym.sym < SDLK_KP_1 || ev.key.keysym.sym > SDLK_KP_0)
+					{g[strlen(g)] = ev.key.keysym.sym - SDLK_0 + '0';}
+					else if (ev.key.keysym.sym == SDLK_KP_0) //keypad
+					{g[strlen(g)] = '0';}
+					else //keypad
+					{g[strlen(g)] = ev.key.keysym.sym - SDLK_KP_1 + 1 + '0';}
+				}
+				break;
+			
+			case bleu:
+				if (!strcmp(b, "0")) //enlève le zéro unique si nécessaire
+				{b[0] = '\000';}
+				if (b[0] != '\000' && b[0] > '2' && b[1] != '\000') {} //bloque les nombres de 300 et plus
+				else if (b[1] != '\000' && b[0] == '2' && (b[1] > '5' || ((ev.key.keysym.sym > SDLK_5 && ev.key.keysym.sym <= SDLK_9) || (ev.key.keysym.sym > SDLK_KP_5 && ev.key.keysym.sym <= SDLK_KP_9)))) {}
+				else if (strlen(b) < 3) //ajoute le chiffre à la valeur                                        \-> bloque les nombres de 256 à 259 et de 260 à 299
+				{
+					if (ev.key.keysym.sym < SDLK_KP_1 || ev.key.keysym.sym > SDLK_KP_0)
+					{b[strlen(b)] = ev.key.keysym.sym - SDLK_0 + '0';}
+					else if (ev.key.keysym.sym == SDLK_KP_0) //keypad
+					{b[strlen(b)] = '0';}
+					else //keypad
+					{b[strlen(b)] = ev.key.keysym.sym - SDLK_KP_1 + 1 + '0';}
+				}
+				break;
+			
+			case alpha:
+				if (!strcmp(a, "0")) //enlève le zéro unique si nécessaire
+				{a[0] = '\000';}
+				if (a[0] != '\000' && a[0] > '2' && a[1] != '\000') {} //bloque les nombres de 300 et plus
+				else if (a[1] != '\000' && a[0] == '2' && (a[1] > '5' || ((ev.key.keysym.sym > SDLK_5 && ev.key.keysym.sym <= SDLK_9) || (ev.key.keysym.sym > SDLK_KP_5 && ev.key.keysym.sym <= SDLK_KP_9)))) {}
+				else if (strlen(a) < 3) //ajoute le chiffre à la valeur                                        \-> bloque les nombres de 256 à 259 et de 260 à 299
+				{
+					if (ev.key.keysym.sym < SDLK_KP_1 || ev.key.keysym.sym > SDLK_KP_0)
+					{a[strlen(a)] = ev.key.keysym.sym - SDLK_0 + '0';}
+					else if (ev.key.keysym.sym == SDLK_KP_0) //keypad
+					{a[strlen(a)] = '0';}
+					else //keypad
+					{a[strlen(a)] = ev.key.keysym.sym - SDLK_KP_1 + 1 + '0';}
+				}
+				break;
+			}
+			break;
+		}
+		break;
+	
+	case SDL_KEYUP:
+		if (ev.key.keysym.sym == SDLK_LSHIFT || ev.key.keysym.sym == SDLK_RSHIFT)
+		{keymod = 0;}
+		break;
+	
+	case SDL_MOUSEBUTTONDOWN:
+		if (curseur >= rouge && curseur <= alpha)
+		{focus = curseur;}
+		else if (curseur == bouton_color_picker)
+		{
+			if (ev.button.button == SDL_BUTTON_RIGHT)
+			{
+				demander_txt("Réglages du color picker", "Entrer ici la commande à exécuter pour ouvrir le color picker de votre choix.\n\nLe color picker est un programme externe et la commande préinscrite \
+(\"zenity --color-selection\") pourrait ne pas fonctionner, voire faire crasher le programme.\nZenity est un ensemble d'outils disponible sur les distributions Linux de type Debian/Ubuntu. Vous pouvez l'installer en entrant \
+la commande \"sudo apt install zenity\" dans votre terminal.", color_picker, sizeof(color_picker), fenetre_reglages);
+			}
+			else
+			{
+				SDL_WaitEvent(&ev); //prend l'event "MOUSEBUTTONUP", car sinon, le color picker ne reçoit rien de la souris, vu qu'il pense que le bouton n'a jamais été lâché...
+				cp_return = popen(color_picker, "r"); //popen agit comme system, mais il nous permet d'intercepter ce que la commande imprime dans le terminal
+				fgets(cp_value, 49, cp_return); //copie de cette string ("rgb(R,G,B)") normalement affichée dans le terminal
+				pclose(cp_return); //fermeture du "pipe" créé par popen
+				if (extraction_rgb)
+				{extraire_rgba(cp_value, r, g, b, a);}
+			}
+		}
+		else if (curseur == annuler)
+		{
+			sprintf(r, "%d", couleur->r);
+			sprintf(g, "%d", couleur->g);
+			sprintf(b, "%d", couleur->b);
+			sprintf(a, "%d", couleur->a);
+		}
+		else if (curseur == appliquer || curseur == termine)
+		{
+			sscanf(r, "%hhd", &couleur->r);
+			sscanf(g, "%hhd", &couleur->g);
+			sscanf(b, "%hhd", &couleur->b);
+			sscanf(a, "%hhd", &couleur->a);
+			
+			if (couleur == &couleur_score) //Les textures des nombres affichées dans la grille étant loadées à l'avance, il faut faire ça ici aussi...
+			{
+				for (int compteur = 0; compteur < 8; compteur++)
+				{
+					if (texture_nbre[compteur] != NULL)
+					{SDL_DestroyTexture(texture_nbre[compteur]);}
+					else if (!erreur && (compteur > 0 || afficher_zeros))
+					{erreur = -14; printf("Erreur 14: La texture du chiffre %d n'a pas pu être chargée (au cas où vous ne l'auriez pas remarqué...).\n", compteur);}
+				}
+				for (int compteur = 1 - afficher_zeros; compteur <= 8; compteur++)
+				{
+					sprintf(nbre_a_afficher, "%d", compteur);
+					surface_nbre = TTF_RenderUTF8_Solid_Wrapped(police, nbre_a_afficher, couleur_score, taille);
+					taille_nbre[compteur].w = surface_nbre->w;
+					taille_nbre[compteur].h = surface_nbre->h;
+					texture_nbre[compteur] = SDL_CreateTextureFromSurface(rend, surface_nbre);
+					SDL_FreeSurface(surface_nbre);
+				}
+			}
+			
+			if (curseur == termine)
+			{focus = 0; curseur = 0; keymod = 0; return 1;}
+		}
+		break;
+	}
+	
+	return 0;
+}
+
+_Bool demander_txt (char titre[], char explications[], char input[], int max, SDL_Window* fenetre_source)
+//Créé une nouvelle fenêtre de style "pop-up" pour demander un input de texte à l'utilisateur.
+//Renvoie 1 en cas de succès et 0 en cas d'erreur.
+/* Paramètres:	- titre = titre de la fenêtre (maximum 200 caractères)
+				- explications = texte expliquant à l'utilisateur ce qu'il doit écrire
+				- input = string où sera enregistré l'input de l'utilisateur
+				- max = taille maximale de la string input (devrait donc toujours être "sizeof(input)")
+				- fenetre_source = ptr vers la structure SDL_Window de la fenêtre à partir de laquelle est appelée cette fonction */
+{
+	SDL_Window* fenetre_d;
+	SDL_Renderer* rend_d;
+	Uint32 ID_fenetre_d;
+	SDL_Event ev;
+	char titre_fenetre[230] = "Minesweeper - ";
+	char ancien_input[max];
+	char focus = 0; //0 = nulle part, 'i' = boîte d'input, 'a' = bouton "annuler", 't' = bouton "terminé". S'applique à la sélection clavier "seulement".
+	unsigned termine = 2; //0 ou 1 = valeur à retourner, 2 = pas terminé
+	
+	//Recopie de strings:
+	strcat(titre_fenetre, titre);
+	if (input[0] == '\000')
+	{ancien_input[0] = '\000';}
+	else
+	{strcpy(ancien_input, input);}
+	
+	//Création de la fenêtre:
+	fenetre_d = SDL_CreateWindow(titre_fenetre, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 650, 400, 0); //fenêtre centrée et non resizeable
+	if (fenetre_d == NULL)
+	{printf("Erreur lors de la création de la fenêtre SDL pour demander du texte:\n%s\n", SDL_GetError()); erreur = -52; return 0;}
+	
+	//Création du renderer:
+	rend_d = SDL_CreateRenderer(fenetre_d, -1, 0);
+	if (rend_d == NULL)
+	{printf("Erreur lors de la création du renderer SDL de la fenêtre pour demander du texte:\n%s\n", SDL_GetError()); SDL_DestroyWindow(fenetre_d); erreur = -53; return 0;}
+	SDL_SetRenderDrawBlendMode(rend_d, SDL_BLENDMODE_BLEND); //permet l'utilisation de couleurs semi-transparentes (et transparentes)
+	
+	//Taille minimale et ID de la fenêtre:
+	ID_fenetre_d = SDL_GetWindowID(fenetre_d);
+	SDL_SetWindowResizable(fenetre_source, SDL_FALSE); //la fenêtre source n'a plus d'affaire à se faire resizer...
+	SDL_RaiseWindow(fenetre_d);
+	
+	//Dessin de la fenêtre et gestion de l'input utilisateur:
+	while (termine >= 2)
+	{
+		//Remplissage avec la couleur du fond:
+		SDL_SetColor(fond, rend_d);
+		SDL_RenderClear(rend_d);
+		
+		//Affichage du titre:
+		TTF_SetFontStyle(police, TTF_STYLE_UNDERLINE);
+		afficher_txt_centre(titre, 0, 650, 5, police, couleur_timer, rend_d);
+		TTF_SetFontStyle(police, TTF_STYLE_NORMAL);
+		
+		//Affichage des instructions:
+		afficher_txt(explications, 30, 50, 590, petite_police, couleur_timer, rend_d);
+		
+		//Affichage de la boîte d'input:
+		rectangle(30, 260, 590, 40, 0, couleur_boutons, fond, rend_d);
+		if (focus == 'i')
+		{rectangle(30, 260, 590, 40, 0, couleur_selection_curseur, fond, rend_d);}
+		rectangle(30, 260, 590, 40, 4, couleur_txt_boutons, fond, rend_d);
+		if (input[0] != '\000')
+		{afficher_txt(input, 40, 270, 570, police, couleur_txt_boutons, rend_d);}
+		
+		//Affichage des boutons:
+		rect_arrondi(370, 340, 120, 40, couleur_boutons, fond, rend_d);
+		if (focus == 'a')
+		{rect_arrondi(370, 340, 120, 40, couleur_selection_clavier, fond, rend_d);}
+		if (ev.motion.x >= 370 && ev.motion.x <= 490 && ev.motion.y >= 340 && ev.motion.y <= 380)
+		{rect_arrondi(370, 340, 120, 40, couleur_selection_curseur, fond, rend_d);}
+		afficher_txt_centre("Annuler", 370, 490, 350, police, couleur_txt_boutons, rend_d);
+		
+		rect_arrondi(510, 340, 120, 40, couleur_boutons, fond, rend_d);
+		if (focus == 't')
+		{rect_arrondi(510, 340, 120, 40, couleur_selection_clavier, fond, rend_d);}
+		if (ev.motion.x >= 510 && ev.motion.x <= 630 && ev.motion.y >= 340 && ev.motion.y <= 380)
+		{rect_arrondi(510, 340, 120, 40, couleur_selection_curseur, fond, rend_d);}
+		afficher_txt_centre("Terminé", 510, 630, 350, police, couleur_txt_boutons, rend_d);
+		
+		//Rendering et gestion de l'input utilisateur:
+		SDL_RenderPresent(rend_d);
+		SDL_WaitEvent(&ev);
+		
+		switch (ev.type)
+		{
+		case SDL_WINDOWEVENT:
+			if (ev.window.windowID != ID_fenetre_d) //si l'utilisateur joue avec l'autre fenêtre (lui donnant ainsi le focus, déclenchant cet event), on veut le ramener à la bonne place
+			{SDL_RaiseWindow(fenetre_d); SDL_FlashWindow(fenetre_d, SDL_FLASH_UNTIL_FOCUSED);}
+			else if (ev.window.event == SDL_WINDOWEVENT_CLOSE) //SDL_QUIT ne fonctionne pas avec plusieurs fenêtres ouvertes...
+			{termine = 0;}
+			break;
+		
+		case SDL_MOUSEMOTION:
+			if (ev.motion.x >= 30 && ev.motion.x <= 620 && ev.motion.y >= 260 && ev.motion.y <= 300)
+			{SDL_SetCursor(curseur_txt);}
+			else
+			{SDL_SetCursor(curseur_normal);}
+			//Le hovering des 2 autres boutons est géré avec l'affichage.
+			break;
+		
+		case SDL_KEYDOWN:
+			switch (ev.key.keysym.sym)
+			{
+			case SDLK_ESCAPE:
+				if (!focus)
+				{termine = 0;}
+				else
+				{focus = 0;}
+				break;
+			
+			case SDLK_TAB:
+				if (focus == 'i')
+				{focus = 'a';}
+				else
+				{focus = 'i';}
+				break;
+			
+			case SDLK_RIGHT:
+			case SDLK_LEFT:
+				if (focus == 'a')
+				{focus = 't';}
+				else if (focus == 't')
+				{focus = 'a';}
+				break;
+			
+			case SDLK_RETURN:
+			case SDLK_KP_ENTER:
+				if (focus == 'i')
+				{focus = 0;}
+				else if (focus == 'a')
+				{termine = 0;}
+				else if (focus == 't')
+				{termine = 1;}
+				break;
+			
+			case SDLK_BACKSPACE:
+				if (!focus)
+				{focus = 'i';}
+				if (focus == 'i' && strlen(input) > 0)
+				{tronquer(input);}
+				break;
+			}
+			break;
+		
+		case SDL_MOUSEBUTTONDOWN:
+			if (ev.button.x >= 30 && ev.button.x <= 620 && ev.button.y >= 250 && ev.button.y <= 290)
+			{focus = 'i';} //boîte d'input
+			else if (ev.button.x >= 370 && ev.button.x <= 490 && ev.button.y >= 340 && ev.button.y <= 380)
+			{termine = 0;}
+			else if (ev.button.x >= 510 && ev.button.x <= 630 && ev.button.y >= 340 && ev.button.y <= 380)
+			{termine = 1;}
+			else
+			{focus = 0;}
+			break;
+		
+		case SDL_TEXTINPUT:
+			focus = 'i';
+			if (strlen(input) < max - 1)
+			{strcat(input, ev.text.text);}
+			break;
+		}
+	}
+	
+	//Destruction de la fenêtre et du renderer et retour aux réglages:
+	SDL_DestroyRenderer(rend_d);
+	SDL_DestroyWindow(fenetre_d);
+	SDL_SetWindowResizable(fenetre_source, SDL_TRUE);
+	
+	//Remise de l'ancien input si nécessaire:
+	if (!termine)
+	{
+		if (ancien_input[0] == '\000')
+		{input[0] = '\000';}
+		else
+		{strcpy(input, ancien_input);}
+	}
+	
+	return (_Bool) termine;
 }

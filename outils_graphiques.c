@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
+#include <math.h>
 
 
 //Macro permettant de changer la couleur des formes dessinées avec SDL de manière plus simple et intelligente:
@@ -17,6 +18,7 @@
 //Liste des fonctions de ce fichier:
 int afficher_txt(char[], int, int, int, TTF_Font*, SDL_Color, SDL_Renderer*);
 int afficher_txt_centre(char[], int, int, int, TTF_Font*, SDL_Color, SDL_Renderer*);
+void extraire_rgba(char[], char[], char[], char[], char[]);
 void rectangle(int, int, int, int, int, SDL_Color, SDL_Color, SDL_Renderer*);
 void tronquer(char[]);
 
@@ -36,6 +38,7 @@ const SDL_Color jaune_orange = {255, 229, 0, 255};
 const SDL_Color orange = {255, 176, 21, 255};
 const SDL_Color orange_fonce = {255, 148, 25, 255};
 const SDL_Color rouge = {255, 95, 51, 255};
+const SDL_Color rouge_symboles = {143, 23, 23, 255};
 const SDL_Color rouge_fonce = {172, 26, 26, 255};
 const SDL_Color rouge_tres_fonce = {80, 11, 11, 255};
 //Ces couleurs ne devraient jamais être utilisées directement (passer plutôt par les différentes couleurs d'éléments définies dans "minesweeper.c").
@@ -60,6 +63,40 @@ void tronquer (char txt[])
 	
 	for (compteur = 0; txt[compteur] != '\000'; compteur++) {}
 	txt[compteur - 1] = '\000';
+}
+
+
+void extraire_rgba (char src[], char r[], char g[], char b[], char a[])
+//Extrait les valeurs r, g, b et a du texte reçu du color picker de zenity (src).
+//Les valeurs sont storées directements dans les paramètres r, g, b et a de la fonction.
+//Le paramètre scr doit donc être de format "rgb(R,G,B)" ou "rgba(R,G,B,A)", où R, G et B sont des nbres entiers positifs <= 255.
+//Le alpha peut être fourni ou pas par src, mais son paramètre a devrait toujours être fourni au cas où.
+//Le programme détectera si un alpha est intégré à src (indépendemment du "rgb" ou "rgba" du début).
+//S'il y en a un, il doit être au format d'un chiffre à virgule entre 0 et 1, qui sera transformé en chiffre entier entre 0 et 255.
+//C'est assez douteux de qualifier cette fonction d'outil _graphique_, mais bon...
+{
+	char buffer[20];
+	double buffer_float = 0.0;
+	
+	//rgb ou rgba:
+	if (strtok(src, "(,) \n") == NULL)
+	{return;} //sert à éviter les segfault si le color picker n'a rien envoyé (annulé) ou si le format n'est pas le bon
+	
+	//rgb:
+	strcpy(r, strtok(NULL, "(,) \n"));
+	strcpy(g, strtok(NULL, "(,) \n"));
+	strcpy(b, strtok(NULL, "(,) \n"));
+	
+	//a:
+	sprintf(buffer, "%s", strtok(NULL, "(,) \n"));
+	if (!strcmp(buffer, "(null)"))
+	{return;}
+	else
+	{
+		sscanf(buffer, "%lf", &buffer_float);
+		sprintf(a, "%d", (int) rint(buffer_float * 255));
+		//printf("%s -> %lf -> %lf -> %lf -> %d\n\n", buffer, buffer_float, buffer_float * 255, rint(buffer_float * 255), (int) rint(buffer_float * 255)); //débogage du alpha
+	}
 }
 
 

@@ -1586,10 +1586,10 @@ void executer_cmd ()
 	}
 	else if (!strcmp(cmd, "miner") || !strcmp(cmd, "m+"))
 	{
-		if (grille[pos_grille_x[0]][pos_grille_y[0]].etat != bombe)
-		{nbre_bombes++; nbre_tuiles_restantes--; printf("La tuile (%d, %d) est déjà minée.\n", pos_grille_x[0], pos_grille_y[0]);}
+		if (grille[pos_grille_x[0]][pos_grille_y[0]].etat == bombe)
+		{printf("La tuile (%d, %d) est déjà minée.\n", pos_grille_x[0], pos_grille_y[0]);}
 		else
-		{printf("Tuile (%d, %d) minée manuellement.\n", pos_grille_x[0], pos_grille_y[0]);}
+		{printf("Tuile (%d, %d) minée manuellement.\n", pos_grille_x[0], pos_grille_y[0]); nbre_bombes++; nbre_tuiles_restantes--;}
 		grille[pos_grille_x[0]][pos_grille_y[0]].etat = bombe;
 		grille[pos_grille_x[0]][pos_grille_y[0]].revelee = 0;
 	}
