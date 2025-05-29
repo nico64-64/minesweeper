@@ -1,8 +1,5 @@
-#include "outils_graphiques.c"
+#include "reglages_backend.c"
 
-
-#define VERSION "0.2.1" //version du programme
-#define OS "Linux" //OS pour lequel le programme est compilé
 
 #define NBRE_PARAMS 4 //nbre de paramètres modifiables (jusqu'à 9)
 #define OPTION_VIDE {"aucun", "aucun", 0, NULL} //raccourcis d'écriture pour une option vide/inutilisée
@@ -50,7 +47,6 @@ void reglages_menu(); //Gère l'accueil des réglages du jeu.
 void modifier_param(int num /*numéro du paramètre à modifier*/); //permet au joueur de consulter/modifier un paramètre
 void mod_dimensions_fenetre (int* x, int* y, char nom_fenetre[]); //permet de modifier la taille par défaut d'une fenêtre
 _Bool mod_couleur (SDL_Color* couleur, char titre[]); //permet de modifier la couleur d'un élément graphique du programme
-_Bool demander_txt(char titre[], char explications[], char input[], int max, SDL_Window* fenetre_source); //permet de demander du texte à l'utilisateur (pas vraiment un réglage, mais bon...)
 //Liste des fonctions modifiant les paramètres:
 void mod_couleurs(); //modifie les couleurs de la grille, des boutons, etc.
 void mod_police(); //modifie la texture des nbres ds la grille
@@ -63,28 +59,6 @@ void mod_fenetre_principale(); //modifie les dimensions de la fenêtre principal
 void mod_fenetre_reglages(); //modifie les dimensions de la fenêtre des réglages
 void mod_fenetre_podium(); //modifie les dimensions de la fenêtre du podium
 
-
-//Couleurs des objets:
-SDL_Color fond = blanc; //couleur de l'arrière-plan de la fenêtre
-SDL_Color couleur_grille = gris; //couleur des carrés la grille
-SDL_Color couleur_score = noir; //couleur des nbres dans la grille, du texte indiquant le "score" du joueur et de bien d'autres choses...
-SDL_Color couleur_timer = noir; //couleur du timer
-SDL_Color couleur_liens = bleu; //couleur des liens cliquables
-SDL_Color couleur_boutons = gris_pale; //couleur des boutons
-SDL_Color couleur_boutons_bloques = gris_fonce; //couleur des boutons que l'utilisateur ne peut pas cliquer (non-disponibles)
-SDL_Color couleur_txt_boutons = noir; //couleur du texte affiché sur les boutons
-SDL_Color couleur_selection_clavier = bleu; //couleur des carrés de la grille ou des boutons lorsque le focus du clavier est par dessus
-SDL_Color couleur_selection_curseur = bleu_efface; //couleur des carrés de la grille ou des boutons lorsque le curseur est par dessus
-SDL_Color couleur_tuile[9] = {transparent, vert_pale, jaune_pale, jaune_orange, orange, orange_fonce, rouge, rouge_fonce, rouge_tres_fonce}; //couleur des tuiles révélées selon le nombre de bombes adjacentes (de 0 à 8)
-
-//Fichiers contenant les images et les polices utilisées par le jeu:
-char icone_podium[35] = "./source/icone_podium.png";
-char symbole_pause[35] = "./source/symbole_pause.png";
-char symbole_fin_de_partie[40] = "./source/symbole_fin_de_partie.png";
-char image_bombe[35] = "./source/symbole_bombe.png";
-char icone_drapeau[35] = "./source/icone_drapeau.png";
-char nom_police[45] = "./source/FreeSerif.ttf";
-char nom_petite_police[45] = "./source/FreeSerif.ttf";
 
 //Textures des objets:
 SDL_Texture* texture_icone_podium = NULL; //texture contenant l'icone du podium (déclarée ici car elle est créée par init() et libérée par quitter())
@@ -101,17 +75,6 @@ SDL_Texture* texture_nbre[9]; //array de textures contenant les chiffres/nombres
 SDL_Window* fenetre_reglages;
 Uint32 ID_fenetre_reglages;
 SDL_Renderer* rend_r;
-
-//Variables globales liées aux réglages:
-const _Bool pop_up_systeme = 1; //indique à l'application si elle doit utiliser les pop-up du système ou créer les siens (Abandonné...)
-const _Bool extraction_rgb = 1; //indique si les valeurs rgb reçues du color picker doivent être extraits comme avec zenity (ne sert à rien pour l'instant)
-_Bool confirmation_quitter = 0; //indique si le jeu doit toujours demander une confirmation avant de quitter une partie en cours
-_Bool afficher_zeros = 0; //indique au programme qu'il doit afficher les zéros sur la grille
-int largeur_fenetre[3] = {1000, 800, 800}; //largeur (en pixels) des 3 fenêtres du programme (dans l'ordre: principale, réglages, podium)
-int hauteur_fenetre[3] = {700, 700, 700}; //longueur (en pixels) des 3 fenêtres du programme (dans l'ordre: principale, réglages, podium)
-int taille_police_normale = 22;
-int taille_petite_police = 19;
-char color_picker[50] = "zenity --color-selection"; //commande à utiliser pour ouvrir le color picker
 
 //Liste des paramètres modifiables:
 struct parametre param[NBRE_PARAMS] =
@@ -139,7 +102,6 @@ struct parametre param[NBRE_PARAMS] =
 
 
 //Variables globales externes utilisées par les fonctions de ce fichier:
-extern int erreur;
 extern int taille;
 extern SDL_Rect taille_nbre[9];
 
@@ -170,6 +132,10 @@ void reglages ()
 	SDL_GetWindowSize(fenetre_reglages, &xmax, &ymax); //xmax et ymax se rapportent maintenant aux dimensions de la fenêtre des réglages...
 	SDL_RaiseWindow(fenetre_reglages);
 	
+	//Vérification de 2-3 petits trucs (j'haïs ça, devoir faire ça!):
+	if (confirmation_quitter && param[2].option[0].non_applicable) //si on demande une confirmation, mais que le bouton pour désactiver ça est non-disponible (ce qui est un non-sens!)
+	{param[2].option[0].non_applicable = 0; param[2].option[1].non_applicable = 1;}
+	
 	//Gestion des réglages:
 	reglages_menu();
 	
@@ -178,6 +144,9 @@ void reglages ()
 	SDL_DestroyWindow(fenetre_reglages);
 	SDL_SetWindowResizable(fenetre, SDL_TRUE);
 	SDL_GetWindowSize(fenetre, &xmax, &ymax); //xmax et ymax sont réinitialisés avec les valeurs de la fenêtre principale
+	
+	//Sauvegarde des nouveaux réglages:
+	cree_fconfig();
 }
 
 void reglages_menu ()
@@ -3301,184 +3270,4 @@ la commande \"sudo apt install zenity\" dans votre terminal.", color_picker, siz
 	}
 	
 	return 0;
-}
-
-_Bool demander_txt (char titre[], char explications[], char input[], int max, SDL_Window* fenetre_source)
-//Créé une nouvelle fenêtre de style "pop-up" pour demander un input de texte à l'utilisateur.
-//Renvoie 1 en cas de succès et 0 en cas d'erreur.
-/* Paramètres:	- titre = titre de la fenêtre (maximum 200 caractères)
-				- explications = texte expliquant à l'utilisateur ce qu'il doit écrire
-				- input = string où sera enregistré l'input de l'utilisateur
-				- max = taille maximale de la string input (devrait donc toujours être "sizeof(input)")
-				- fenetre_source = ptr vers la structure SDL_Window de la fenêtre à partir de laquelle est appelée cette fonction */
-{
-	SDL_Window* fenetre_d;
-	SDL_Renderer* rend_d;
-	Uint32 ID_fenetre_d;
-	SDL_Event ev;
-	char titre_fenetre[230] = "Minesweeper - ";
-	char ancien_input[max];
-	char focus = 0; //0 = nulle part, 'i' = boîte d'input, 'a' = bouton "annuler", 't' = bouton "terminé". S'applique à la sélection clavier "seulement".
-	unsigned termine = 2; //0 ou 1 = valeur à retourner, 2 = pas terminé
-	
-	//Recopie de strings:
-	strcat(titre_fenetre, titre);
-	if (input[0] == '\000')
-	{ancien_input[0] = '\000';}
-	else
-	{strcpy(ancien_input, input);}
-	
-	//Création de la fenêtre:
-	fenetre_d = SDL_CreateWindow(titre_fenetre, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 650, 400, 0); //fenêtre centrée et non resizeable
-	if (fenetre_d == NULL)
-	{printf("Erreur lors de la création de la fenêtre SDL pour demander du texte:\n%s\n", SDL_GetError()); erreur = -52; return 0;}
-	
-	//Création du renderer:
-	rend_d = SDL_CreateRenderer(fenetre_d, -1, 0);
-	if (rend_d == NULL)
-	{printf("Erreur lors de la création du renderer SDL de la fenêtre pour demander du texte:\n%s\n", SDL_GetError()); SDL_DestroyWindow(fenetre_d); erreur = -53; return 0;}
-	SDL_SetRenderDrawBlendMode(rend_d, SDL_BLENDMODE_BLEND); //permet l'utilisation de couleurs semi-transparentes (et transparentes)
-	
-	//Taille minimale et ID de la fenêtre:
-	ID_fenetre_d = SDL_GetWindowID(fenetre_d);
-	SDL_SetWindowResizable(fenetre_source, SDL_FALSE); //la fenêtre source n'a plus d'affaire à se faire resizer...
-	SDL_RaiseWindow(fenetre_d);
-	
-	//Dessin de la fenêtre et gestion de l'input utilisateur:
-	while (termine >= 2)
-	{
-		//Remplissage avec la couleur du fond:
-		SDL_SetColor(fond, rend_d);
-		SDL_RenderClear(rend_d);
-		
-		//Affichage du titre:
-		TTF_SetFontStyle(police, TTF_STYLE_UNDERLINE);
-		afficher_txt_centre(titre, 0, 650, 5, police, couleur_timer, rend_d);
-		TTF_SetFontStyle(police, TTF_STYLE_NORMAL);
-		
-		//Affichage des instructions:
-		afficher_txt(explications, 30, 50, 590, petite_police, couleur_timer, rend_d);
-		
-		//Affichage de la boîte d'input:
-		rectangle(30, 260, 590, 40, 0, couleur_boutons, fond, rend_d);
-		if (focus == 'i')
-		{rectangle(30, 260, 590, 40, 0, couleur_selection_curseur, fond, rend_d);}
-		rectangle(30, 260, 590, 40, 4, couleur_txt_boutons, fond, rend_d);
-		if (input[0] != '\000')
-		{afficher_txt(input, 40, 270, 570, police, couleur_txt_boutons, rend_d);}
-		
-		//Affichage des boutons:
-		rect_arrondi(370, 340, 120, 40, couleur_boutons, fond, rend_d);
-		if (focus == 'a')
-		{rect_arrondi(370, 340, 120, 40, couleur_selection_clavier, fond, rend_d);}
-		if (ev.motion.x >= 370 && ev.motion.x <= 490 && ev.motion.y >= 340 && ev.motion.y <= 380)
-		{rect_arrondi(370, 340, 120, 40, couleur_selection_curseur, fond, rend_d);}
-		afficher_txt_centre("Annuler", 370, 490, 350, police, couleur_txt_boutons, rend_d);
-		
-		rect_arrondi(510, 340, 120, 40, couleur_boutons, fond, rend_d);
-		if (focus == 't')
-		{rect_arrondi(510, 340, 120, 40, couleur_selection_clavier, fond, rend_d);}
-		if (ev.motion.x >= 510 && ev.motion.x <= 630 && ev.motion.y >= 340 && ev.motion.y <= 380)
-		{rect_arrondi(510, 340, 120, 40, couleur_selection_curseur, fond, rend_d);}
-		afficher_txt_centre("Terminé", 510, 630, 350, police, couleur_txt_boutons, rend_d);
-		
-		//Rendering et gestion de l'input utilisateur:
-		SDL_RenderPresent(rend_d);
-		SDL_WaitEvent(&ev);
-		
-		switch (ev.type)
-		{
-		case SDL_WINDOWEVENT:
-			if (ev.window.windowID != ID_fenetre_d) //si l'utilisateur joue avec l'autre fenêtre (lui donnant ainsi le focus, déclenchant cet event), on veut le ramener à la bonne place
-			{SDL_RaiseWindow(fenetre_d); SDL_FlashWindow(fenetre_d, SDL_FLASH_UNTIL_FOCUSED);}
-			else if (ev.window.event == SDL_WINDOWEVENT_CLOSE) //SDL_QUIT ne fonctionne pas avec plusieurs fenêtres ouvertes...
-			{termine = 0;}
-			break;
-		
-		case SDL_MOUSEMOTION:
-			if (ev.motion.x >= 30 && ev.motion.x <= 620 && ev.motion.y >= 260 && ev.motion.y <= 300)
-			{SDL_SetCursor(curseur_txt);}
-			else
-			{SDL_SetCursor(curseur_normal);}
-			//Le hovering des 2 autres boutons est géré avec l'affichage.
-			break;
-		
-		case SDL_KEYDOWN:
-			switch (ev.key.keysym.sym)
-			{
-			case SDLK_ESCAPE:
-				if (!focus)
-				{termine = 0;}
-				else
-				{focus = 0;}
-				break;
-			
-			case SDLK_TAB:
-				if (focus == 'i')
-				{focus = 'a';}
-				else
-				{focus = 'i';}
-				break;
-			
-			case SDLK_RIGHT:
-			case SDLK_LEFT:
-				if (focus == 'a')
-				{focus = 't';}
-				else if (focus == 't')
-				{focus = 'a';}
-				break;
-			
-			case SDLK_RETURN:
-			case SDLK_KP_ENTER:
-				if (focus == 'i')
-				{focus = 0;}
-				else if (focus == 'a')
-				{termine = 0;}
-				else if (focus == 't')
-				{termine = 1;}
-				break;
-			
-			case SDLK_BACKSPACE:
-				if (!focus)
-				{focus = 'i';}
-				if (focus == 'i' && strlen(input) > 0)
-				{tronquer(input);}
-				break;
-			}
-			break;
-		
-		case SDL_MOUSEBUTTONDOWN:
-			if (ev.button.x >= 30 && ev.button.x <= 620 && ev.button.y >= 250 && ev.button.y <= 290)
-			{focus = 'i';} //boîte d'input
-			else if (ev.button.x >= 370 && ev.button.x <= 490 && ev.button.y >= 340 && ev.button.y <= 380)
-			{termine = 0;}
-			else if (ev.button.x >= 510 && ev.button.x <= 630 && ev.button.y >= 340 && ev.button.y <= 380)
-			{termine = 1;}
-			else
-			{focus = 0;}
-			break;
-		
-		case SDL_TEXTINPUT:
-			focus = 'i';
-			if (strlen(input) < max - 1)
-			{strcat(input, ev.text.text);}
-			break;
-		}
-	}
-	
-	//Destruction de la fenêtre et du renderer et retour aux réglages:
-	SDL_DestroyRenderer(rend_d);
-	SDL_DestroyWindow(fenetre_d);
-	SDL_SetWindowResizable(fenetre_source, SDL_TRUE);
-	
-	//Remise de l'ancien input si nécessaire:
-	if (!termine)
-	{
-		if (ancien_input[0] == '\000')
-		{input[0] = '\000';}
-		else
-		{strcpy(input, ancien_input);}
-	}
-	
-	return (_Bool) termine;
 }

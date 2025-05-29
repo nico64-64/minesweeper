@@ -18,6 +18,9 @@
 //Liste des fonctions de ce fichier:
 int afficher_txt(char[], int, int, int, TTF_Font*, SDL_Color, SDL_Renderer*);
 int afficher_txt_centre(char[], int, int, int, TTF_Font*, SDL_Color, SDL_Renderer*);
+_Bool est_un_bool(char[]);
+_Bool est_un_nbre(char[]);
+char* enleve_majuscule(char[]);
 void extraire_rgba(char[], char[], char[], char[], char[]);
 void rectangle(int, int, int, int, int, SDL_Color, SDL_Color, SDL_Renderer*);
 void tronquer(char[]);
@@ -63,6 +66,42 @@ void tronquer (char txt[])
 	
 	for (compteur = 0; txt[compteur] != '\000'; compteur++) {}
 	txt[compteur - 1] = '\000';
+}
+
+
+char* enleve_majuscule (char string[])
+//Remplace chaque majuscule de la string reçue en paramètre par la minuscule correspondante.
+//Renvoie la string sans majuscules.
+//Équivalent de strlwr().
+{
+	for (int compteur = 0; string[compteur] != '\0'; compteur++)
+	{string[compteur] = tolower(string[compteur]);}
+	return string;
+}
+
+
+_Bool est_un_bool(char input[])
+//Renvoie 1 si la string "input" est un 0 ou un 1 et 0 si ce n'en est pas un.
+{
+	for (int compteur = 0; input[compteur] != '\000'; compteur++)
+	{
+		if (input[compteur] != '0' && input[compteur] != '1')
+		{return 0;}
+	}
+	return 1;
+}
+
+
+_Bool est_un_nbre(char input[])
+//Renvoie 1 si "input" est un nombre et 0 si ce n'en est pas un.
+{
+	for (int compteur = 0; input[compteur] != '\000'; compteur++)
+	{
+		if (input[compteur] != '0' && input[compteur] != '1' && input[compteur] != '2' && input[compteur] != '3' && input[compteur] != '4' && input[compteur] != '5' && input[compteur] != '6' \
+			&& input[compteur] != '7' && input[compteur] != '8' && input[compteur] != '9')
+		{return 0;}
+	}
+	return 1;
 }
 
 

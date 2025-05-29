@@ -173,7 +173,6 @@ int init()
 	SDL_Surface* surface_nbre; //surface qui contiendra un nombre (texte) à transformer en texture
 	char nbre_a_afficher[5] = "?"; //string qui contiendra le nbre à transformer en texture
 	
-	
 	//Initialisation et démarrage de SDL et compagnie:
 	
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) //initialisation de SDL
@@ -203,6 +202,12 @@ int init()
 	
 	//Taille minimale de la fenêtre:
 	SDL_SetWindowMinimumSize(fenetre, 650, 500); //doit être placé après la création du renderer pour que ça marche (bug)
+	
+	//Affichage d'un écran de loading:
+	SDL_SetColor(blanc, rend);
+	SDL_RenderClear(rend);
+	afficher_txt_centre("Veuillez patienter...", 0, xmax, ymax / 2 - 20, police, noir, rend);
+	SDL_RenderPresent(rend);
 	
 	//Création des différents curseurs:
 	curseur_normal = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
@@ -271,6 +276,11 @@ int init()
 		SDL_FreeSurface(surface_nbre);
 	}
 	
+	//Lecture des réglages depuis leur fichier de sauvegarde:
+	lire_fconfig();
+	
+	//Fin de l'initialisation du programme:
+	SDL_FlushEvents(SDL_FIRSTEVENT, SDL_LASTEVENT);
 	return 0;
 }
 
