@@ -173,21 +173,13 @@ int init()
 	SDL_Surface* surface_nbre; //surface qui contiendra un nombre (texte) à transformer en texture
 	char nbre_a_afficher[5] = "?"; //string qui contiendra le nbre à transformer en texture
 	
-	//Initialisation et démarrage de SDL et compagnie:
+	//Initialisation et démarrage de SDL et compagnie + lecture et application des réglages depuis leur fichier de sauvegarde:
 	
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) //initialisation de SDL
 	{printf("Erreur lors de l'initialisation de SDL.\n(%s)\n", SDL_GetError()); return -1;}
 	
 	if (TTF_Init() < 0) //initialisation de SDL_ttf
 	{printf("Erreur lors de l'initialisation de SDL_ttf.\n(%s)\n", TTF_GetError()); SDL_Quit(); return -4;}
-	
-	//Chargement des polices ttf:
-	police = TTF_OpenFont(nom_police, taille_police_normale);
-	if (police == NULL)
-	{printf("Erreur lors du chargement de la police ttf:\n%s\n", TTF_GetError()); TTF_Quit(); SDL_Quit(); return -5;}
-	petite_police = TTF_OpenFont(nom_petite_police, taille_petite_police);
-	if (petite_police == NULL) //erreur non-fatale (cette police n'est quand même pas très utilisée...)
-	{printf("Erreur 15: Impossible de créer la petite police (%s).\n", TTF_GetError());}
 	
 	//Création de la fenêtre:
 	fenetre = SDL_CreateWindow("Minesweeper", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, largeur_fenetre[0], hauteur_fenetre[0], SDL_WINDOW_RESIZABLE);
@@ -203,11 +195,37 @@ int init()
 	//Taille minimale de la fenêtre:
 	SDL_SetWindowMinimumSize(fenetre, 650, 500); //doit être placé après la création du renderer pour que ça marche (bug)
 	
+	//Chargement des polices temporaires:
+	petite_police = TTF_OpenFont(nom_police, taille_petite_police);
+	police = TTF_OpenFont(nom_police, taille_police_normale);
+	if (police == NULL || petite_police == NULL)
+	{printf("Erreur lors du chargement des polices ttf temporaires:\n%s\n", TTF_GetError());}
+	
 	//Affichage d'un écran de loading:
 	SDL_SetColor(blanc, rend);
 	SDL_RenderClear(rend);
 	afficher_txt_centre("Veuillez patienter...", 0, xmax, ymax / 2 - 20, police, noir, rend);
 	SDL_RenderPresent(rend);
+	
+	//Lecture des réglages depuis leur fichier de sauvegarde:
+	lire_fconfig();
+	xmax = largeur_fenetre[0];
+	ymax = hauteur_fenetre[0];
+	SDL_SetWindowSize(fenetre, xmax, ymax);
+	TTF_CloseFont(police);
+	TTF_CloseFont(petite_police);
+	
+	//Chargement des polices ttf:
+	police = TTF_OpenFont(nom_police, taille_police_normale);
+	if (police == NULL)
+	{printf("Erreur lors du chargement de la police ttf:\n%s\n", TTF_GetError()); TTF_Quit(); SDL_Quit(); return -5;}
+	petite_police = TTF_OpenFont(nom_petite_police, taille_petite_police);
+	if (petite_police == NULL) //erreur non-fatale (cette police n'est quand même pas très utilisée...)
+	{
+		erreur = -15;
+		printf("Erreur 15: Impossible de créer la petite police (%s).\n", TTF_GetError());
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Erreur", "La petite police n'a pas pu être chargée. Certains textes ne seront donc pas affichés.\nConsultez la console pour plus de détails.", NULL);
+	}
 	
 	//Création des différents curseurs:
 	curseur_normal = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
@@ -275,9 +293,6 @@ int init()
 		texture_nbre[compteur] = SDL_CreateTextureFromSurface(rend, surface_nbre);
 		SDL_FreeSurface(surface_nbre);
 	}
-	
-	//Lecture des réglages depuis leur fichier de sauvegarde:
-	lire_fconfig();
 	
 	//Fin de l'initialisation du programme:
 	SDL_FlushEvents(SDL_FIRSTEVENT, SDL_LASTEVENT);
@@ -1329,7 +1344,7 @@ void rafraichir (enum zone curseur)
 	}
 	
 	//Écriture du score et affichage du timer:
-	rectangle(marge_droite + 40, ymax / 4 - 40, xmax - marge_droite - 80, 120, 3, noir, fond, rend);
+	rectangle(marge_droite + 40, ymax / 4 - 40, xmax - marge_droite - 80, 120, 3, couleur_timer, fond, rend);
 	sprintf(score, "%d / %d", nbre_drapeaux, nbre_bombes);
 	rect_arrondi(marge_droite + (xmax - marge_droite - afficher_txt_centre(score, marge_droite, xmax, ymax / 4 - 10, police, couleur_txt_boutons, rend)) / 2 - 10, ymax / 4 - 20, \
 		longueur_txt_centre(score, marge_droite, xmax, police) + 20, 40, couleur_grille, fond, rend);

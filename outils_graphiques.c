@@ -139,6 +139,19 @@ void extraire_rgba (char src[], char r[], char g[], char b[], char a[])
 }
 
 
+int cmp_couleurs (SDL_Color couleur1, SDL_Color couleur2)
+//Compare 2 couleurs ensemble.
+//Renvoie 0 si ces couleurs sont les mêmes ou la différence d'alpha ou -1 si ce ne sont pas les mêmes.
+{
+	if (couleur1.r == couleur2.r && couleur1.g == couleur2.g && couleur1.b == couleur2.b && couleur1.a == couleur2.a)
+	{return 0;}
+	else if (couleur1.a != couleur2.a)
+	{return couleur2.a - couleur1.a;}
+	else
+	{return -1;}
+}
+
+
 int afficher_txt (char txt[], int x, int y, int longueur_max, TTF_Font* police, SDL_Color couleur, SDL_Renderer* renderer)
 //Affiche du texte dans une fenêtre.
 //Renvoie la longueur du texte affiché.
@@ -149,6 +162,9 @@ int afficher_txt (char txt[], int x, int y, int longueur_max, TTF_Font* police, 
 				- couleur = la couleur du texte
 				- renderer = le renderer où s'affichera le texte ou NULL si on ne veut pas l'afficher */
 {
+	if (police == NULL)
+	{return 0;}
+	
 	SDL_Surface* surface = TTF_RenderUTF8_Blended_Wrapped(police, txt, couleur, longueur_max); //Utiliser "blended" plutôt que "Solid" rend le txt bcp plus beau!!! (probablement à cause que je render avec du alpha blending...)
 	SDL_Rect rect = {x, y, surface->w, surface->h};
 	
@@ -176,6 +192,9 @@ int afficher_txt_centre (char txt[], int x_gauche, int x_droite, int y, TTF_Font
 				- couleur = la couleur du texte
 				- renderer = le renderer à utiliser ou NULL si on ne veut pas afficher le texte */
 {
+	if (police == NULL)
+	{return 0;}
+	
 	SDL_Surface* surface = TTF_RenderUTF8_Blended_Wrapped(police, txt, transparent, x_droite - x_gauche);
 	int longueur = surface->w;
 	

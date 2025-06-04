@@ -1240,8 +1240,8 @@ void mod_police ()
 			case reinitialiser:
 				taille_police_normale = 22;
 				taille_petite_police = 19;
-				strcpy(nom_police, "./source/FreeSerif.ttf");
-				strcpy(nom_petite_police, "./source/FreeSerif.ttf");
+				strcpy(nom_police, "./source/free_serif.ttf");
+				strcpy(nom_petite_police, "./source/free_serif.ttf");
 				//Pas de break! On veut que le code "coule" au case suivant!
 			
 			case retour:
@@ -1260,11 +1260,11 @@ void mod_police ()
 				if (petite_police == NULL)
 				{printf("Erreur 16: Impossible de charger la nouvelle petite police (%s).\n", TTF_GetError()); erreur = -16; petite_police = petite_police_backup;}
 				//Libération des anciennes polices:
-				if (police_backup != police)
+				if (police_backup != police && police_backup != petite_police)
 				{TTF_CloseFont(police_backup);}
 				else
 				{printf("L'ancienne police a été utilisée en guise de fallback pour la police normale.\n");}
-				if (petite_police_backup != NULL && petite_police_backup != petite_police)
+				if (petite_police_backup != NULL && petite_police_backup != petite_police && petite_police_backup != police)
 				{TTF_CloseFont(petite_police_backup);}
 				else if (petite_police == NULL)
 				{printf("Aucun fallback trouvé pour la petite police (erreur 17). Certains textes ne seront pas affichés.\n"); erreur = -17;}
@@ -1371,8 +1371,8 @@ void mod_police ()
 				case reinitialiser:
 					taille_police_normale = 22;
 					taille_petite_police = 19;
-					strcpy(nom_police, "./source/FreeSerif.ttf");
-					strcpy(nom_petite_police, "./source/FreeSerif.ttf");
+					strcpy(nom_police, "./source/free_serif.ttf");
+					strcpy(nom_petite_police, "./source/free_serif.ttf");
 					//Pas de break! On veut que le code "coule" au case suivant!
 				
 				case retour:
@@ -1391,11 +1391,11 @@ void mod_police ()
 					if (petite_police == NULL)
 					{printf("Erreur 16: Impossible de charger la nouvelle petite police (%s).\n", TTF_GetError()); erreur = -16; petite_police = petite_police_backup;}
 					//Libération des anciennes polices:
-					if (police_backup != police)
+					if (police_backup != police && police_backup != petite_police)
 					{TTF_CloseFont(police_backup);}
 					else
 					{printf("L'ancienne police a été utilisée en guise de fallback pour la police normale.\n");}
-					if (petite_police_backup != NULL && petite_police_backup != petite_police)
+					if (petite_police_backup != NULL && petite_police_backup != petite_police && petite_police_backup != police)
 					{TTF_CloseFont(petite_police_backup);}
 					else if (petite_police == NULL)
 					{printf("Aucun fallback trouvé pour la petite police (erreur 17). Certains textes ne seront pas affichés.\n"); erreur = -17;}
@@ -2778,8 +2778,8 @@ void mod_dimensions_fenetre (int* x, int* y, char nom_fenetre[])
 	{
 		if (*x < 650)
 		{*x = 650;}
-		if (*y < 600)
-		{*y = 600;}
+		if (*y < 500)
+		{*y = 500;}
 	}
 	else //fenêtre des réglages ou du podium
 	{

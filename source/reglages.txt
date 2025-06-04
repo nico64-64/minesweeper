@@ -1,0 +1,11 @@
+
+[ Couleur_Fond rgba(255, 255, 240, 255) ]
+[ Couleur_Texte_Libre rgba(0, 0, 75, 255) ]
+[ Couleur_Liens rgba(0, 75, 150, 255) ]
+
+[ Couleur_Selection_Clavier rgba(15, 155, 186, 255) ]
+[ Couleur_Selection_Curseur rgba(155, 228, 234, 100) ]
+
+[ FIN ]
+
+Dernière Modification: Tue Jun  3 22:31:05 2025
