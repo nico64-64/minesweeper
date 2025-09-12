@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <time.h>
+#include <pthread.h>
 #include "reglages.c"
 
 
@@ -51,6 +53,7 @@ SDL_Rect taille_nbre[9]; //array de rects donnant la taille (x en w et y en h) d
 int taille = 0; //taille des carrés dans la grille
 int marge_gauche = 0; //largeur de la marge à gauche de la grille
 int marge_droite = 0; //début de la marge (contenant les boutons) à droite de la grille
+time_t dernier_refresh; //indique l'heure à laquelle le dernier appel à la fonction rafraichir() a été fait
 
 //Variables globales liées à la grille:
 int nbre_col = 16; //nbre de colonnes dans la grille
@@ -70,8 +73,11 @@ int tuile_finale[2] = {-1, -1}; //coordonnées {x, y} (dans la grille) de la bom
 //Variables globales (surtout des "flags") indiquant "l'état" de la partie / du jeu:
 int nbre_tuiles_restantes = -1; //nbre de tuiles non-révélées qui ne sont pas des bombes ou des drapeaux
 int pts = 0; //nbre de drapeaux placés au bon endroit
-_Bool pause = 0; //indique si le jeu est en pause ou non
+_Bool _pause = 0; //indique si le jeu est en pause ou non
 int fin_de_partie = 0; //indique si la partie est terminée ou pas (0 = en cours, 1 = partie terminée (victoire ou défaite pas encore déterminé), 2 = défaite, 3 = victoire)
+int chrono = 0;
+time_t heure_debut;
+time_t temps_pause = 0;
 
 //Variables globales liées à la "command line"
 _Bool cmd_line = 0; //indique au jeu si le joueur est présentement en train d'utiliser la "command line"
@@ -80,6 +86,7 @@ _Bool recalcul = 0; //indique à la fct reveler_tuile() si elle doit recalculer 
 _Bool debogage = 0; //permet d'afficher les coordonnées de chaque bombe dans la console au début de chaque partie
 
 //Autres variables globales:
+_Bool thread_initialise = 0; //indique si le thread du chronomètre a déjà été créé
 int ancien_nbre_col = 0; //ancien nbre de colonnes (pour la libération de la mémoire utilisée par la grille entre 2 parties sur des grilles de différentes tailles)
 int erreur = 0; //code d'erreur
 
@@ -91,6 +98,7 @@ void menu(); //gère le menu principal de l'application
 _Bool grille_perso(); //permet la création d'une grille de taille variable
 void rafraichir_menu(enum zone); //redessine le menu principal
 void nouvelle_partie(); //démarre une nouvelle partie
+void* chronometre(void*); //gère le chronomètre (depuis un nouveau thread)
 void partie(); //loop gérant les events pendant une partie
 void rafraichir(enum zone); //redessine la fenêtre du jeu
 _Bool reveler_tuile(int, int); //révèle une tuile si elle n'est pas une bombe
@@ -156,12 +164,20 @@ void gestion_param(char arg[])
 		printf("Jeu de Minesweeper codé en C.\n\nVoici la liste des options que peut recevoir le programme à son démarrage:\n");
 		printf("--aide (-a ou -?)  affiche ce texte, puis quitte\n");
 		printf("--version (-v)     affiche la version du programme, puis quitte\n");
+		printf("--debogage (-d)    démarre le jeu en mode débogage\n");
+		printf("--pasdechrono      démarre le jeu sans jamais activer le chronomètre\n");
 		printf("\nCe programme doit normalement être démarré sans arguments, et il n'est même pas nécessaire de le démarrer depuis un terminal.\n");
 		exit(0);
 	}
 	
 	else if (!strcmp(arg, "-v") || !strcmp(arg, "--version"))
 	{printf("Jeu de Minesweeper codé en C.\nVersion %s\n", VERSION); exit(0);}
+	
+	else if (!strcmp(arg, "-d") || !strcmp(arg, "--debogage"))
+	{printf("Mode débogage activé.\n"); debogage = 1;}
+	
+	else if (!strcmp(arg, "--pasdechrono") || !strcmp(arg, "--chrono=0"))
+	{printf("Chronomètre désactivé.\n"); thread_initialise = 1;} //voir la commande "pasdechrono" pour comprendre ce hack
 }
 
 
@@ -822,6 +838,7 @@ void nouvelle_partie ()
 	int nouv_bombe = -1; //variable temporaire utilisée pour indiquer le "numéro" de la case qui contiendra la prochaine bombe
 	int col = -1; //variable temporaire servant à identifier la colonne de la case qui contiendra la prochaine bombe
 	SDL_Event calcul_taille_fenetre; //faux windowevent SDL qui sera envoyé artificiellement afin de s'assurer que les calculs de la taille des différents éléments du jeu soient faits
+	pthread_t thread1; //contiendra les "données" du thread du chronomètre
 	
 	
 	//Libération de la mémoire utilisée par la grille précédente:
@@ -884,7 +901,7 @@ void nouvelle_partie ()
 	
 	//Réinitialisation de différentes variables:
 	fin_de_partie = 0;
-	pause = 0;
+	_pause = 0;
 	recalcul = 0;
 	nbre_drapeaux = 0;
 	nbre_tuiles_restantes = (nbre_col * nbre_lignes) - nbre_bombes;
@@ -894,6 +911,46 @@ void nouvelle_partie ()
 	//S'assure que les calculs de la taille des différents éléments sera faits:
 	calcul_taille_fenetre.type = SDL_WINDOWEVENT;
 	SDL_PushEvent(&calcul_taille_fenetre);
+	
+	//Crée le nouveau thread du timer:
+	if (!thread_initialise)
+	{
+		if (pthread_create(&thread1, NULL, chronometre, NULL) != 0)
+		{
+			printf("Erreur: impossible de créer un nouveau thread pour le chronomètre.\n");
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Erreur", \
+				"Erreur 16: impossible de démarrer le chronomètre.\nCette partie se fera donc sans.\nOuvrez l'application depuis la console pour en savoir plus.", NULL); //affiche un pop-up d'erreur
+			erreur = -16;
+		}
+	}
+	thread_initialise = 1;
+	heure_debut = time(NULL);
+	temps_pause = 0;
+	chrono = 0;
+}
+
+
+void* chronometre (void* arg)
+//Gère le chrono d'une partie.
+//Doit être appelée via un nouveau thread (par la fonction nouvelle_partie()).
+{
+	time_t buffer;
+	
+	while (!fin_de_partie)
+	{
+		if (_pause)
+		{
+			buffer = time(NULL);
+			while (_pause && !fin_de_partie) {}
+			temps_pause += time(NULL) - buffer;
+		}
+		else
+		{chrono = time(NULL) - heure_debut - temps_pause;}
+	}
+	
+	thread_initialise = 0;
+	pthread_exit(NULL); //fin du thread et retour de la fonction
+	return NULL; //ne sera jamais exécuté (ferait la même chose que pthread_exit())
 }
 
 
@@ -902,7 +959,9 @@ void partie ()
 {
 	_Bool keymod = 0; //indique si l'utilisateur est en train d'appuyer sur Shift, Ctrl ou Alt
 	_Bool render_a_faire = 0; //indique au programme qu'il n'a pas encore redessiné la fenêtre (utilisé dans certains cas spécifiques seulement)
+	enum zone pos_curseur = 0; //indique où se trouve le curseur (updaté à chaque mouvement de souris) pour le rafraichissement de l'écran pour le chrono
 	SDL_Event ev;
+	time_t heure; //heure actuelle, updaté à chaque tick
 	
 	//Données du pop-up de confirmation pour fermer l'application (déclaré ici (et ailleurs) afin d'éviter une erreur comme quoi "fenetre" n'est pas cst...):
 	int choix_popup_quitter = 0;
@@ -944,10 +1003,7 @@ void partie ()
 	
     while (1)
     {
-        //Timer:
-		//À FAIRE!!!
-		
-		//Vérifie si tous les drapeaux on été placés ou si toutes les tuiles non-bombes ont été dévoilées:
+        //Vérifie si tous les drapeaux on été placés ou si toutes les tuiles non-bombes ont été dévoilées:
 		if (!fin_de_partie && (nbre_tuiles_restantes <= 0 || nbre_drapeaux == nbre_bombes))
 		{
 			strcpy(cmd, "cmd: rct");
@@ -957,6 +1013,9 @@ void partie ()
 			else
 			{fin_de_partie = 3;}
 		}
+		
+		//Trouve l'heure actuelle:
+		heure = time(NULL);
 		
 		//Gestion de l'input:
 		if (SDL_PollEvent(&ev)) //SDL_PollEvent renvoie 1 s'il trouve un event et 0 s'il n'en trouve pas
@@ -1005,10 +1064,10 @@ void partie ()
 				case SDLK_p:
 					if (!fin_de_partie && !cmd_line)
 					{
-						if (!pause)
-						{pause = 1;}
+						if (!_pause)
+						{_pause = 1;}
 						else
-						{pause = 0;}
+						{_pause = 0;}
 						rafraichir(0);
 					}
 					break;
@@ -1026,7 +1085,7 @@ void partie ()
 						switch (focus)
 						{
 						case sur_grille:
-							if (keymod && !pause && !fin_de_partie)
+							if (keymod && !_pause && !fin_de_partie)
 							{
 								if (!grille[pos_grille_x[0]][pos_grille_y[0]].revelee)
 								{
@@ -1046,14 +1105,14 @@ void partie ()
 									}
 								}
 							}
-							else if (!pause && !fin_de_partie)
+							else if (!_pause && !fin_de_partie)
 							{reveler_tuile(pos_grille_x[0], pos_grille_y[0]);}
 							rafraichir(0);
 							break;
 						
 						case bouton_podium:
 							/*if (!fin_de_partie)
-							{pause = 1; rafraichir(0);}
+							{_pause = 1; rafraichir(0);}
 							//À venir! (dans une fenêtre séparée par défaut?)
 							rafraichir(0);*/
 							break;
@@ -1061,10 +1120,10 @@ void partie ()
 						case bouton_pause:
 							if (!fin_de_partie)
 							{
-								if (!pause)
-								{pause = 1;}
+								if (!_pause)
+								{_pause = 1;}
 								else
-								{pause = 0;}
+								{_pause = 0;}
 								rafraichir(0);
 							}
 							break;
@@ -1093,7 +1152,7 @@ void partie ()
 						
 						case bouton_reglages:
 							if (!fin_de_partie)
-							{pause = 1; rafraichir(0);}
+							{_pause = 1; rafraichir(0);}
 							reglages();
 							rafraichir(0);
 							break;
@@ -1167,7 +1226,7 @@ void partie ()
 				case SDLK_d:
 				case SDLK_f:
 				case SDLK_INSERT:
-					if (focus == sur_grille && !grille[pos_grille_x[0]][pos_grille_y[0]].revelee && !cmd_line)
+					if (focus == sur_grille && !grille[pos_grille_x[0]][pos_grille_y[0]].revelee && !cmd_line && !_pause && !fin_de_partie)
 					{
 						if (grille[pos_grille_x[0]][pos_grille_y[0]].drapeau)
 						{
@@ -1214,14 +1273,16 @@ void partie ()
 				break;
 			
 			case SDL_MOUSEMOTION:
+				pos_curseur = 0;
 				if (ev.motion.x >= xmax - 80 && ev.motion.y >= 20 && ev.motion.x <= xmax - 20 && ev.motion.y <= 60)
-				{rafraichir(bouton_podium); render_a_faire = 0;}
+				{rafraichir(bouton_podium); render_a_faire = 0; pos_curseur = bouton_podium;}
 				else if (ev.motion.x >= marge_gauche && ev.motion.y >= (ymax - nbre_lignes * (taille + 5)) / 2 \
 					&& ev.motion.x <= nbre_col * (taille + 5) + marge_gauche - 5 && ev.motion.y <= nbre_lignes * (taille + 5) + (ymax - nbre_lignes * (taille + 5)) / 2 - 5)
 				{
 					pos_grille_x[1] = (ev.motion.x - marge_gauche) / (taille + 5);
 					pos_grille_y[1] = (ev.motion.y - (ymax - nbre_lignes * (taille + 5)) / 2) / (taille + 5);
 					rafraichir(sur_grille);
+					pos_curseur = sur_grille;
 				}
 				else
 				{
@@ -1230,7 +1291,7 @@ void partie ()
 					{
 						if (ev.motion.x >= marge_droite + (xmax - marge_droite - 150) / 2 && ev.motion.y >= ymax / 2 + compteur * 60 \
 							&& ev.motion.x <= marge_droite + (xmax - marge_droite + 150) / 2 && ev.motion.y <= ymax / 2 + 40 + compteur * 60)
-						{rafraichir(bouton_pause + compteur); render_a_faire = 0;}
+						{rafraichir(bouton_pause + compteur); render_a_faire = 0; pos_curseur = bouton_pause + compteur;}
 					}
 					if (render_a_faire)
 					{rafraichir(0); render_a_faire = 0;}
@@ -1243,7 +1304,7 @@ void partie ()
 				{cmd_line = 0; rafraichir(0);}
 				else if (ev.button.x >= xmax - 80 && ev.button.y >= 20 && ev.button.x <= xmax - 20 && ev.button.y <= 60) //bouton podium
 				{/*À faire!*/}
-				else if (!fin_de_partie && ev.button.x >= marge_gauche && ev.button.y >= (ymax - nbre_lignes * (taille + 5)) / 2 \
+				else if (!fin_de_partie && !_pause && ev.button.x >= marge_gauche && ev.button.y >= (ymax - nbre_lignes * (taille + 5)) / 2 \
 					&& ev.button.x <= nbre_col * (taille + 5) + marge_gauche - 5 && ev.button.y <= nbre_lignes * (taille + 5) + (ymax - nbre_lignes * (taille + 5)) / 2 - 5) //grille
 				{
 					if ((keymod || ev.button.button == SDL_BUTTON_RIGHT) && !grille[pos_grille_x[1]][pos_grille_y[1]].revelee) //placement d'un drapeau
@@ -1269,10 +1330,10 @@ void partie ()
 				}
 				else if (ev.button.x >= (xmax + marge_droite - 150) / 2 && ev.button.y >= ymax / 2 && ev.button.x <= (xmax + marge_droite + 150) / 2 && ev.button.y <= ymax / 2 + 40 && !fin_de_partie) //bouton pause
 				{
-					if (!pause)
-					{pause = 1;}
+					if (!_pause)
+					{_pause = 1;}
 					else
-					{pause = 0;}
+					{_pause = 0;}
 					rafraichir(bouton_pause);
 				}
 				else if (ev.button.x >= (xmax + marge_droite - 150) / 2 && ev.button.y >= ymax / 2 + 60 && ev.button.x <= (xmax + marge_droite + 150) / 2 && ev.button.y <= ymax / 2 + 100) //bouton recommencer
@@ -1300,7 +1361,7 @@ void partie ()
 				else if (ev.button.x >= (xmax + marge_droite - 150) / 2 && ev.button.y >= ymax / 2 + 180 && ev.button.x <= (xmax + marge_droite + 150) / 2 && ev.button.y <= ymax / 2 + 220) //bouton réglages
 				{
 					if (!fin_de_partie)
-					{pause = 1; rafraichir(0);}
+					{_pause = 1; rafraichir(0);}
 					reglages();
 					rafraichir(0);
 				}
@@ -1312,6 +1373,11 @@ void partie ()
 				break;
 			}
 		}
+		
+		//S'il n'y a pas eu d'event, vérifions si on doit quand même rafraichir la page (pour le chrono):
+		//Je met toutes ces conditions pour éviter que ça lag en redessinant trop souvent (1x/s, c'est assez, et on n'a pas besoin de le faire si la partie est terminée ou en pause).
+		else if (!fin_de_partie && !_pause && heure - dernier_refresh >= 1)
+		{rafraichir(pos_curseur);}
     }
 }
 
@@ -1325,6 +1391,7 @@ void rafraichir (enum zone curseur)
 	SDL_Rect rect_drapeau = {0, 0, taille, taille};
 	char score[10] = "ERREUR"; //"score" affiché à droite de la grille (nbre de drapeaux utilisé / nbre de bombes dans la grille)
 	char nbre_bombes_adjacentes[5] = "?"; //nbre de bombes adjacentes à une tuile (string contenant ce nbre qui sera affiché sur chaque tuile révélée)
+	char timer[15] = "ERREUR"; //chronomètre tel qu'affiché à l'écran
 	
 	//Arrière-plan de la fenêtre:
 	SDL_SetColor(fond, rend);
@@ -1348,7 +1415,12 @@ void rafraichir (enum zone curseur)
 	sprintf(score, "%d / %d", nbre_drapeaux, nbre_bombes);
 	rect_arrondi(marge_droite + (xmax - marge_droite - afficher_txt_centre(score, marge_droite, xmax, ymax / 4 - 10, police, couleur_txt_boutons, rend)) / 2 - 10, ymax / 4 - 20, \
 		longueur_txt_centre(score, marge_droite, xmax, police) + 20, 40, couleur_grille, fond, rend);
-	afficher_txt_centre("00:00", marge_droite, xmax, ymax / 4 + 40, police, couleur_timer, rend);
+	if (chrono % 60 < 10)
+	{sprintf(timer, "%d:0%d", chrono / 60, chrono % 60);}
+	else
+	{sprintf(timer, "%d:%d", chrono / 60, chrono % 60);}
+	
+	afficher_txt_centre(timer, marge_droite, xmax, ymax / 4 + 40, police, couleur_timer, rend);
 	
 	//Dessin des boutons:
 	rect_arrondi(marge_droite + (xmax - marge_droite - 150) / 2, ymax / 2, 150, 40, couleur_boutons, fond, rend); //pause
@@ -1362,7 +1434,7 @@ void rafraichir (enum zone curseur)
 	{SDL_RenderCopy(rend, texture_symbole_fin_de_partie_defaite, NULL, &rect_symbole_pause);}
 	else if (fin_de_partie > 0 && texture_symbole_fin_de_partie != NULL)
 	{SDL_RenderCopy(rend, texture_symbole_fin_de_partie, NULL, &rect_symbole_pause);}
-	else if (pause && texture_symbole_pause != NULL)
+	else if (_pause && texture_symbole_pause != NULL)
 	{SDL_RenderCopy(rend, texture_symbole_pause, NULL, &rect_symbole_pause);}
 	
 	//Modification de l'élément "sélectionné" par la souris (hovering):
@@ -1468,6 +1540,9 @@ void rafraichir (enum zone curseur)
 	
 	//Affichage à l'écran:
 	SDL_RenderPresent(rend);
+	
+	//Indique l'heure du refresh:
+	dernier_refresh = time(NULL);
 }
 
 
@@ -1558,6 +1633,7 @@ void executer_cmd ()
 		printf("- recalculer tout (rct) = révèle et recalcule la valeur de chaque tuile qui n'est pas une bombe\n- vérifier victoire (vv) = vérifie si vous avez gagné ou perdu et affiche quelques infos à ce sujet dans le terminal\n");
 		printf("  > vérifier victoire --interne (vv -i) = effectue la commande sans rien afficher dans le terminal\n- miner (m+) = transforme une tuile* en bombe\n- déminer / cacher (m-) = démine et cache une tuile*\n");
 		printf("- drapeau / marquer (d) = place un drapeau sur une tuile* s'il n'y en avait pas ou l'enlève s'il y en avait un\n- focus (xy) = affiche les coordonnées** d'une tuile* dans le terminal\n");
+		printf("- pasdechrono / chrono=0 = désactive le chronomètre (effectif jusqu'à la fermeture de l'application)\n");
 		printf("- déboguer (db) = active ou désactive le mode débogage, qui affiche les coordonnées** de chaque bombe dans le terminal au début de chaque partie\n--------------------\n");
 		printf("* Lorsqu'une commande fait référence à une tuile, il s'agit de la tuile précédemment sélectionnée avec le clavier.\n");
 		printf("** Lorsqu'une commande affiche des coordonnées dans le terminal, celles-ci sont affichées sous le format \"(x, y)\", où x et y débutent à 0 (et non 1).\n\n");
@@ -1650,6 +1726,18 @@ void executer_cmd ()
 	}
 	else if (!strcmp(cmd, "focus") || !strcmp(cmd, "xy"))
 	{printf("Tuile sélectionnée: (%d, %d)\n", pos_grille_x[0], pos_grille_y[0]);}
+	else if (!strcmp(cmd, "notimer") || !strcmp(cmd, "pasdechrono") || !strcmp(cmd, "chrono=0"))
+	{
+		//Pour désactiver le chrono, je vais activer le flag de fin de partie pour stopper le thread, puis laisser un délai d'une seconde, pour être sûr que le thread l'a vu et a quitté, \
+			puis je vais faire semblant que le thread est encore actif pour ne pas en redémarrer un ensuite.
+		fin_de_partie = 1;
+		thread_initialise = 1;
+		printf("Chrono désactivé.\n");
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Désactivation du chronomètre", "Veuillez patienter un instant...", NULL);
+		sleep(1);
+		fin_de_partie = 0;
+		chrono = 0;
+	}
 	else
 	{
 		printf("\"%s\" n'est pas une commande reconnue.\n", cmd);

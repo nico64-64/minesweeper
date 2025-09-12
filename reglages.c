@@ -1586,7 +1586,7 @@ void mod_couleur_icones ()
 	{
 		//0 = ailleurs...
 		podium = 1,
-		pause,
+		_pause,
 		victoire,
 		defaite,
 		drapeaux,
@@ -1884,7 +1884,7 @@ void mod_couleur_icones ()
 						strcpy(titre, "Couleur du symbole du podium:");
 						break;
 					
-					case pause:
+					case _pause:
 						choix_couleur = &couleur_pause;
 						strcpy(titre, "Couleur du symbole de pause:");
 						break;
@@ -2019,7 +2019,7 @@ void mod_couleur_icones ()
 					strcpy(titre, "Couleur du symbole du podium:");
 					break;
 				
-				case pause:
+				case _pause:
 					choix_couleur = &couleur_pause;
 					strcpy(titre, "Couleur du symbole de pause:");
 					break;
@@ -2154,7 +2154,7 @@ void mod_icones_perso ()
 	{
 		//ailleurs = 0,
 		podium = 1,
-		pause,
+		_pause,
 		victoire,
 		defaite,
 		drapeau,
@@ -2364,7 +2364,7 @@ transparent. Les dimensions idéales sont 80x80 pixels.", icone_podium, sizeof(i
 					texture_icone_podium = IMG_LoadTexture(rend, icone_podium);
 					break;
 				
-				case pause:
+				case _pause:
 					demander_txt("Charger un nouvel icone", "Pour charger un nouveau symbole de pause, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
 cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
 transparent. Les dimensions idéales sont 80x80 pixels.", symbole_pause, sizeof(symbole_pause), fenetre_reglages);
@@ -2478,7 +2478,7 @@ transparent. Les dimensions idéales sont 80x80 pixels.", icone_podium, sizeof(i
 				texture_icone_podium = IMG_LoadTexture(rend, icone_podium);
 				break;
 			
-			case pause:
+			case _pause:
 				demander_txt("Charger un nouvel icone", "Pour charger un nouveau symbole de pause, suivez les étapes suivantes:\n1. Placer le fichier contenant le nouveau symbole dans le dossier nommé \"source\".\n2. Dans \
 cette fenêtre, effacer le nom de l'ancien fichier (en gardant le \"./source/\").\n3. Écrire le nom du nouveau fichier, sans oublier l'extension (.png, .jpeg, etc.).\n4. Cliquer \"Terminé\"!\n\nL'arrière-plan doit être \
 transparent. Les dimensions idéales sont 80x80 pixels.", symbole_pause, sizeof(symbole_pause), fenetre_reglages);

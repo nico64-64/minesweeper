@@ -1,7 +1,7 @@
 #include "outils_graphiques.c"
 
 
-#define VERSION "0.3" //version du programme
+#define VERSION "1.0" //version du programme
 #define OS "Linux" //OS pour lequel le programme est compilé
 
 
