@@ -1,4 +1,5 @@
 #include "reglages_backend.c"
+#include <math.h>
 
 
 #define NBRE_PARAMS 4 //nbre de paramètres modifiables (jusqu'à 9)
