@@ -2,6 +2,7 @@
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
 #include <math.h>
+#include <ctype.h>
 
 
 //Macro permettant de changer la couleur des formes dessinées avec SDL de manière plus simple et intelligente:
