@@ -17,6 +17,11 @@ Assurez-vous d'avoir d'abord installé les dépendances (`libsdl2`, `libsdl2_ima
 ## Avancement
 Le module du podium n'a pas encore été fait. Tout le reste du programme est terminé, mais quelques fonctionnalités pourraient être ajoutées à l'avenir.
 
+## Police
+La police `free_serif.ttf` placée dans le dossier source est licenciée sous la licence "GPLv3 with font exception" par GNU FreeFonts (<url>https://www.gnu.org/software/freefont/</url>).
+
+Vous pouvez remplacer cette police par n'importe quelle autre police TTF.
+
 ## Notes
 
 ### Color picker
