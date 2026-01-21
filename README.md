@@ -14,6 +14,13 @@ Vous devriez pouvoir compiler le programme avec la commande `gcc minesweeper.c -
 
 Assurez-vous d'avoir d'abord installé les dépendances (`libsdl2`, `libsdl2_image`, `libsdl2_ttf` et `libsdl2-dev`, `libsdl2_image-dev`, `libsdl2_ttf-dev` pour la construction).
 
+## Usage
+Vous pouvez utiliser autant la souris que le clavier dans ce jeu.
+
+Un clic gauche révèle une tuile, tandis qu'un clic droit place un drapeau.
+
+Avec le clavier, Espace et Enter révèle une tuile, tandis que D, F, Shift-Enter, Alt-Enter, Ctrl-Enter et la même chose avec Espace place un drapeau. P ou Pause met le jeu sur pause.
+
 ## Avancement
 Le module du podium n'a pas encore été fait. Tout le reste du programme est terminé, mais quelques fonctionnalités pourraient être ajoutées à l'avenir.
 
