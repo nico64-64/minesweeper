@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 
 #Script utilisé pour démarrer le jeu depuis un launcher (desktop et menu).
 

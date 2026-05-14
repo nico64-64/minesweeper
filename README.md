@@ -5,8 +5,8 @@ Développé en C avec SDL2
 par Nicolas Audette
 
 ## Installation
-- Sur Windows, suivez les instructions de la release v1.0.
-- Sur un système Linux x86_64, vous pouvez suivre les instructions de la release v1.0.
+- Sur Windows, suivez les instructions de la release v1.0.1.
+- Sur un système Linux x86_64, vous pouvez suivre les instructions de la release v1.0.1.
 - Sur un autre système, construisez manuellement le programme.
 
 ## Construction manuelle
@@ -31,7 +31,7 @@ Vous pouvez remplacer cette police par n'importe quelle autre police TTF.
 
 ## Notes
 
-### Color picker
+### Sélecteur de couleur
 
 Les réglages de l'application font appel à un programme externe comme color picker. Si celui-ci ne fonctionne pas ou n'est pas installé, vous pouvez quand même modifier les couleurs directement via leurs valeurs rgba.
 
@@ -61,16 +61,18 @@ Lorsque démarré depuis le terminal, quelques paramètres peuvent lui être pas
 Les options de débogage (dont la ligne de commande interne) nécessitent que le programme ait été démarré depuis le terminal.
 
 #### Sur Windows
-L'exécutable de la release v1.0 a été construit de manière à ce qu'une fenêtre de terminal s'ouvre même si le programme est juste double-cliqué. Cependant, si l'exécutable est double-cliqué et que la codepage par défaut n'est pas UTF-8, l'affichage des caractères accentués sera brisé. On peut corriger cela en entrant `chcp 65001` dans le terminal juste avant de démarrer le programme (depuis ce même terminal).
+L'exécutable de la release v1.0.1 a été construit de manière à ce qu'une fenêtre de terminal s'ouvre même si le programme est juste double-cliqué. Cependant, si l'exécutable est double-cliqué et que la codepage par défaut n'est pas UTF-8, l'affichage des caractères accentués sera brisé. On peut corriger cela en entrant `chcp 65001` dans le terminal juste avant de démarrer le programme (depuis ce même terminal).
 
-Lorsque démarré depuis le terminal, quelques paramètres peuvent lui être passés. Pour en connaître la liste, entrez `Minesweeper.exe -?`. Les options suivent les standards d'options Unix, même sur Windows.
+Lorsque démarré depuis le terminal, quelques paramètres peuvent lui être passés. Pour en connaître la liste, entrez `Minesweeper.exe -?`.
 
 Les options de débogage (dont la ligne de commande interne) nécessitent que le programme ait été démarré depuis le terminal.
 
 ### Chronomètre
 
-Le chronomètre roule sur un thread séparé, alors que tout le reste du programme tient en un seul thread (sauf le backend SDL). Si vous trouvez que le programme demande trop de puissance, essayez de désactiver le chronomètre. Il y a ici une assez grande place à amélioration...
+Ce programme tient en un seul thread, à l'exception du backend SDL et du chronomètre. La coordination avec le thread du chronomètre laisse assez à désirer et sera probablement refaite plus tard.
+
+Avant la release v1.0.1, le chronomètre pouvait demander beaucoup trop de puissance et donner l'impression que votre ordinateur était un avion à réaction en plein décollage, mais cela ne devrait plus être un problème avec cette version. Sinon, vous pouvez toujours désactiver le chronomètre au démarrage ou avec la ligne de commande interne.
 
 ### Icônes et symboles alternatifs
 
-Vous pouvez utiliser les symboles par défaut pleins ou vides sans problèmes, mais utiliser vos propres icônes est beaucoup plus complexe...
+Vous pouvez utiliser les symboles par défaut pleins ou vides sans problèmes, mais utiliser vos propres icônes est beaucoup plus complexe (et pas toujours recommandé)...
