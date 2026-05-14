@@ -946,6 +946,7 @@ void* chronometre (void* arg)
 		}
 		else
 		{chrono = time(NULL) - heure_debut - temps_pause;}
+		SDL_Delay(995);
 	}
 	
 	thread_initialise = 0;
