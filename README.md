@@ -5,21 +5,21 @@ Développé en C avec SDL2
 par Nicolas Audette
 
 ## Installation
-- Sur Windows, suivez les instructions de la release v1.0.1.
-- Sur un système Linux x86_64, vous pouvez suivre les instructions de la release v1.0.1.
+- Sur Windows, suivez les instructions de la release la plus récente.
+- Sur un système Linux x86_64, vous pouvez suivre les instructions de la release la plus récente.
 - Sur un autre système, construisez manuellement le programme.
 
 ## Construction manuelle
-Vous devriez pouvoir compiler le programme avec la commande `gcc minesweeper.c -o Minesweeper -lSDL2 -lSDL_image -lSDL_ttf -lm` sur à peu près n'importe quel système Linux.
+Vous devriez pouvoir compiler le programme avec la commande `gcc minesweeper.c -o Minesweeper -lSDL2 -lSDL_image -lSDL_ttf -lm` sur à peu près n'importe quel système Linux (et autres).
 
-Assurez-vous d'avoir d'abord installé les dépendances (`libsdl2`, `libsdl2_image`, `libsdl2_ttf` et `libsdl2-dev`, `libsdl2_image-dev`, `libsdl2_ttf-dev` pour la construction).
+Assurez-vous d'avoir d'abord installé les dépendances `libsdl2-dev`, `libsdl2-image-dev` et `libsdl2-ttf-dev`.
 
 ## Usage
 Vous pouvez utiliser autant la souris que le clavier dans ce jeu.
 
 Un clic gauche révèle une tuile, tandis qu'un clic droit place un drapeau.
 
-Avec le clavier, Espace et Enter révèle une tuile, tandis que D, F, Shift-Enter, Alt-Enter, Ctrl-Enter et la même chose avec Espace place un drapeau. P ou Pause met le jeu sur pause.
+Avec le clavier, Espace et Enter révèle une tuile, tandis que D, F, Shift-Enter, Alt-Enter, Ctrl-Enter et la même chose avec Espace place un drapeau. P ou Pause met le jeu sur pause. Utilisez les flèches pour vous déplacer dans la grille et Tab pour accéder aux boutons.
 
 ## Avancement
 Le module du podium n'a pas encore été fait. Tout le reste du programme est terminé, mais quelques fonctionnalités pourraient être ajoutées à l'avenir.
@@ -30,6 +30,12 @@ La police `free_serif.ttf` placée dans le dossier source est licenciée sous la
 Vous pouvez remplacer cette police par n'importe quelle autre police TTF.
 
 ## Notes
+
+### Dossier `source`
+
+Ce dossier contient les images et les polices utilisées par le programme.
+
+Il doit être placé au même endroit que l'exécutable, sans quoi le programme sera incapable d'afficher du texte autrement que par des pop-ups.
 
 ### Sélecteur de couleur
 
@@ -43,13 +49,13 @@ Vous pouvez toutefois le changer pour un autre, mais celui-ci devra fournir le r
 #### Sur Windows
 Cette fonctionnalité est non-fonctionnelle sur Windows, mais il est inutile de désactiver le parsing de l'output de la commande.
 
-### Dossier `source`
-
-Ce dossier contient les images et les polices utilisées par le programme.
-
-Il doit être placé au même endroit que l'exécutable, sans quoi le programme sera incapable d'afficher du texte autrement que par des pop-ups.
+### Script de démarrage `run.sh` (sur Linux seulement)
 
 Puisque les chemins d'accès par défaut sont relatifs, veuillez utiliser le script `run.sh` pour démarrer l'application (surtout si vous vous créez un launcher ou un fichier `.desktop`).
+
+`run.sh` devrait normalement se configurer automatiquement à son premier démarrage. Pour être sûr que ce sera le cas, je vous suggère de le démarrer dans votre terminal depuis le dossier où vous avez installé le jeu.
+
+Vous pouvez réinitialiser le script en lui passant l'argument "reset", si l'envie vous en prend.
 
 ### Utilisation du terminal
 

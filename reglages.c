@@ -576,7 +576,8 @@ void mod_couleurs ()
 		termine
 	};
 	
-	SDL_Color* PAS_UN_CHOIX_DE_COULEUR;
+	SDL_Color _dummy = {0, 0, 0, 0};
+	SDL_Color* PAS_UN_CHOIX_DE_COULEUR = &_dummy;
 	SDL_Color* choix_couleur = PAS_UN_CHOIX_DE_COULEUR;
 	SDL_Event ev;
 	enum zone focus = 0;
@@ -1599,7 +1600,8 @@ void mod_couleur_icones ()
 		termine
 	};
 	
-	SDL_Color* PAS_UN_CHOIX_DE_COULEUR;
+	SDL_Color _dummy = {0, 0, 0, 0};
+	SDL_Color* PAS_UN_CHOIX_DE_COULEUR = &_dummy;
 	SDL_Color* choix_couleur = PAS_UN_CHOIX_DE_COULEUR;
 	SDL_Event ev;
 	enum zone focus = 0;
@@ -1780,7 +1782,6 @@ void mod_couleur_icones ()
 				SDL_SetTextureColorMod(_texture_drapeaux_mal_places, couleur_drapeaux_mal_places.r, couleur_drapeaux_mal_places.g, couleur_drapeaux_mal_places.b);
 				SDL_SetTextureColorMod(_texture_bombes, couleur_bombes.r, couleur_bombes.g, couleur_bombes.b);
 				SDL_SetTextureColorMod(_texture_bombe_cliquee, couleur_bombe_cliquee.r, couleur_bombe_cliquee.g, couleur_bombe_cliquee.b);
-				
 			}
 			else
 			{choix_couleur = NULL;}
