@@ -178,7 +178,7 @@ void reglages_menu ()
 		sprintf(buffer, "Minesweeper en C, version %s sur %s.", VERSION, OS);
 		afficher_txt(buffer, 20, ymax - 40, xmax - 210, petite_police, couleur_timer, rend_r);
 		
-		for (int compteur = 0; compteur < NBRE_PARAMS; compteur++)
+		for (unsigned compteur = 0; compteur < NBRE_PARAMS; compteur++)
 		{
 			if (focus - 1 == compteur)
 			{rect_arrondi(xmax / 4, 50 + compteur * (50 + (ymax - 500) / 10), xmax / 2, (35 + (ymax - 500) / 20), couleur_selection_clavier, fond, rend_r);}
@@ -476,7 +476,7 @@ void modifier_param (int num)
 			{
 				while (focus > option1 && param[num].option[focus - option1].non_applicable)
 				{focus--;}
-				while (focus - option1 < param[num].nbre_options && param[num].option[focus - option1].non_applicable)
+				while (focus - option1 < (unsigned) param[num].nbre_options && param[num].option[focus - option1].non_applicable)
 				{focus++;}
 				if (focus == option4 && param[num].option[focus - option1].non_applicable)
 				{focus = lien_details;}
@@ -598,7 +598,7 @@ void mod_couleurs ()
 		
 		//Couleur des tuiles selon le nbre de bombes adjacentes:
 		strcpy(buffer, "1 bombe adjacente:");
-		for (int compteur = 1; compteur < 9; compteur++)
+		for (unsigned compteur = 1; compteur < 9; compteur++)
 		{
 			afficher_txt(buffer, 230 - longueur_txt(buffer, 210, police), compteur * 65 - 10, 210, police, couleur_timer, rend_r);
 			rectangle(240, compteur * 65 - 25, 50, 50, 0, couleur_tuile[compteur], fond, rend_r);
@@ -658,7 +658,7 @@ void mod_couleurs ()
 			afficher_txt("Arrière-plan:", 480 - longueur_txt("Arrière-plan:", 160, police) + largeur_supp / 2, 510, 160, police, couleur_timer, rend_r);
 			rectangle(490 + largeur_supp / 2, 495, 50, 50, 0, fond, fond, rend_r);
 			
-			for (int compteur = 0; compteur < 8; compteur++)
+			for (unsigned compteur = 0; compteur < 8; compteur++)
 			{
 				if (curseur == 10 + compteur)
 				{rectangle(490 + largeur_supp / 2, 40 + compteur * 65, 50, 50, 0, couleur_selection_curseur, fond, rend_r);}
@@ -1104,7 +1104,7 @@ void mod_police ()
 		afficher_txt_centre("police normale:", xmax / 2 - 250, xmax / 2 - 50, ymax / 2 - 35, police, couleur_timer, rend_r);
 		afficher_txt_centre("Taille de la", xmax / 2, xmax / 2 + 300, ymax / 2 - 60, police, couleur_timer, rend_r);
 		afficher_txt_centre("petite police:", xmax / 2, xmax / 2 + 300, ymax / 2 - 35, police, couleur_timer, rend_r);
-		for (int compteur = 0; compteur < 2; compteur++)
+		for (unsigned compteur = 0; compteur < 2; compteur++)
 		{
 			rectangle(xmax / 2 - 190 + 300 * compteur, ymax / 2, 80, 45, 0, couleur_boutons, fond, rend_r); //haut
 			if (curseur == moyen_plus + compteur)
@@ -1727,7 +1727,7 @@ void mod_couleur_icones ()
 		afficher_txt("Bombe cliquée:", 310 - longueur_txt("Bombe cliquée:", 200, police) + largeur_supp / 2, 510, 200, police, couleur_timer, rend_r);
 		SDL_RenderCopy(rend_r, _texture_bombe_cliquee, NULL, &rect_bombe_cliquee);
 		
-		for (int compteur = 1; compteur <= 8; compteur++)
+		for (unsigned compteur = 1; compteur <= 8; compteur++)
 		{
 			if (curseur == compteur)
 			{rect_arrondi(320 + largeur_supp / 2, compteur * 65 - 25, 50, 50, couleur_selection_curseur, fond, rend_r);}
@@ -2212,7 +2212,7 @@ void mod_icones_perso ()
 		TTF_SetFontStyle(police, TTF_STYLE_NORMAL);
 		
 		//Boutons:
-		for (int compteur = 1; compteur <= 8; compteur++)
+		for (unsigned compteur = 1; compteur <= 8; compteur++)
 		{
 			rect_arrondi(20 + (xmax - 580) / 2, compteur * 65 - 25, 50, 50, couleur_boutons, fond, rend_r);
 			if (curseur == compteur)
@@ -2853,7 +2853,7 @@ _Bool mod_couleur (SDL_Color* ptr_couleur, char titre[])
 	TTF_SetFontStyle(police, TTF_STYLE_NORMAL);
 	
 	//Boîtes de texte RGBA:
-	for (int compteur = 0; compteur < 4; compteur++)
+	for (unsigned compteur = 0; compteur < 4; compteur++)
 	{
 		rectangle(170 + largeur_supp / 2, 160 + 60 * compteur, 130, 40, 0, fond, couleur_boutons, rend_r);
 		if (focus == compteur + 1)

@@ -109,25 +109,6 @@ void quitter(); //ferme le programme
 int main (int argc, char *argv[])
 {
 	char msg_erreur[200] = "Aucune erreur."; //message d'erreur correspondant à afficher
-	SDL_Event ev;
-	
-	//Données du pop-up de confirmation pour fermer l'application (déclaré ici (et ailleurs) afin d'éviter une erreur comme quoi "fenetre" n'est pas cst...):
-	int choix_popup_quitter = 0;
-	SDL_MessageBoxButtonData boutons_popup_quitter[2] =
-	{
-		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Annuler"},
-		{SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Quitter"}
-	};
-	SDL_MessageBoxData popup_quitter =
-	{
-		SDL_MESSAGEBOX_INFORMATION,
-		fenetre,
-		"Voulez-vous vraiment quitter?",
-		"La partie en cours sera perdue.",
-		2,
-		boutons_popup_quitter,
-		NULL
-	};
 	
 	
 	//Gestion des arguments reçus par le programme:
@@ -185,7 +166,7 @@ int init()
 //Initialise le programme (appelé une seule fois, au début).
 //Renvoie un code d'erreur négatif ou 0 en cas de succès.
 {
-    SDL_Surface* icone; //surface contenant l'icone de l'application, qui sera assignée à la fenêtre de celle-ci
+	SDL_Surface* icone; //surface contenant l'icone de l'application, qui sera assignée à la fenêtre de celle-ci
 	SDL_Surface* surface_nbre; //surface qui contiendra un nombre (texte) à transformer en texture
 	char nbre_a_afficher[5] = "?"; //string qui contiendra le nbre à transformer en texture
 	
@@ -771,7 +752,7 @@ void rafraichir_menu (enum zone curseur)
 		afficher_txt_centre("mines:", xmax / 2 + 100, xmax / 2 + 200, ymax / 2 - 120, petite_police, couleur_txt_boutons, rend);
 		
 		//Dessin des 3 modules:
-		for (int compteur = 0; compteur < 3; compteur++)
+		for (unsigned compteur = 0; compteur < 3; compteur++)
 		{
 			rectangle(xmax / 2 - 190 + 150 * compteur, ymax / 2 - 90, 80, 45, 0, fond, couleur_boutons, rend); //haut
 			if (curseur == gp_plus_col + compteur * 2)
@@ -834,7 +815,6 @@ void rafraichir_menu (enum zone curseur)
 void nouvelle_partie ()
 //Initialise une partie (appelé au début de chaque partie).
 {
-	tuile* ptr_temp = NULL; //ptr temporaire servant à la création de la grille
 	int nouv_bombe = -1; //variable temporaire utilisée pour indiquer le "numéro" de la case qui contiendra la prochaine bombe
 	int col = -1; //variable temporaire servant à identifier la colonne de la case qui contiendra la prochaine bombe
 	SDL_Event calcul_taille_fenetre; //faux windowevent SDL qui sera envoyé artificiellement afin de s'assurer que les calculs de la taille des différents éléments du jeu soient faits
@@ -1391,7 +1371,6 @@ void rafraichir (enum zone curseur)
 	SDL_Rect rect_symbole_pause = {marge_droite + 40, 20, 61, 61};
 	SDL_Rect rect_drapeau = {0, 0, taille, taille};
 	char score[10] = "ERREUR"; //"score" affiché à droite de la grille (nbre de drapeaux utilisé / nbre de bombes dans la grille)
-	char nbre_bombes_adjacentes[5] = "?"; //nbre de bombes adjacentes à une tuile (string contenant ce nbre qui sera affiché sur chaque tuile révélée)
 	char timer[15] = "ERREUR"; //chronomètre tel qu'affiché à l'écran
 	
 	//Arrière-plan de la fenêtre:
@@ -1729,8 +1708,8 @@ void executer_cmd ()
 	{printf("Tuile sélectionnée: (%d, %d)\n", pos_grille_x[0], pos_grille_y[0]);}
 	else if (!strcmp(cmd, "notimer") || !strcmp(cmd, "pasdechrono") || !strcmp(cmd, "chrono=0"))
 	{
-		//Pour désactiver le chrono, je vais activer le flag de fin de partie pour stopper le thread, puis laisser un délai d'une seconde, pour être sûr que le thread l'a vu et a quitté, \
-			puis je vais faire semblant que le thread est encore actif pour ne pas en redémarrer un ensuite.
+		//Pour désactiver le chrono, je vais activer le flag de fin de partie pour stopper le thread, puis laisser un délai d'une seconde, pour être sûr que le thread l'a vu et a quitté,
+		//  puis je vais faire semblant que le thread est encore actif pour ne pas en redémarrer un ensuite.
 		fin_de_partie = 1;
 		thread_initialise = 1;
 		printf("Chrono désactivé.\n");

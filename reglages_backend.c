@@ -1,7 +1,7 @@
 #include "outils_graphiques.c"
 
 
-#define VERSION "1.0" //version du programme
+#define VERSION "1.0.2" //version du programme
 #define OS "Linux" //OS pour lequel le programme est compilé
 
 
@@ -250,7 +250,7 @@ fconfig_nom, sizeof(fconfig_nom), fenetre))
 				
 				case txt:
 				case fichier:
-					if (strlen(ptr_str) + strlen(mot) < buffint) //buffint == sizeof(ptr_str)
+					if (strlen(ptr_str) + strlen(mot) < (unsigned) buffint) //buffint == sizeof(ptr_str)
 					{
 						if (compteur != 0)
 						{strcat(ptr_str, " ");}
@@ -351,7 +351,7 @@ fconfig_nom, sizeof(fconfig_nom), fenetre))
 void cree_fconfig ()
 //Enregistre les réglages actuels en les écrivant dans un fichier txt.
 {
-	_Bool mod = 1; //indique si on modifie un fichier ou si on en cree un nouveau
+	_Bool mod = 1; //indique si on modifie un fichier ou si on en crée un nouveau
 	char mot1[200] = "";
 	char mot2[200] = "";
 	char mot3[200] = "";
@@ -477,11 +477,11 @@ void cree_fconfig ()
 	
 	if (!mod)
 	{fprintf(fconfig, "Autres Réglages:\n");}
-	if (!mod || largeur_fenetre[0] != 1000 && hauteur_fenetre[0] != 700)
+	if (!mod || (largeur_fenetre[0] != 1000 && hauteur_fenetre[0] != 700))
 	{fprintf(fconfig, "[ Taille_Fenetre_Principale %d x %d ]\n", largeur_fenetre[0], hauteur_fenetre[0]);}
-	if (!mod || largeur_fenetre[1] != 800 && hauteur_fenetre[1] != 700)
+	if (!mod || (largeur_fenetre[1] != 800 && hauteur_fenetre[1] != 700))
 	{fprintf(fconfig, "[ Taille_Fenetre_Reglages %d x %d ]\n", largeur_fenetre[1], hauteur_fenetre[1]);}
-	if (!mod || largeur_fenetre[2] != 800 && hauteur_fenetre[2] != 700)
+	if (!mod || (largeur_fenetre[2] != 800 && hauteur_fenetre[2] != 700))
 	{fprintf(fconfig, "[ Taille_Fenetre_Podium %d x %d ]\n", largeur_fenetre[2], hauteur_fenetre[2]);}
 	
 	fprintf(fconfig, "\n[ FIN ]\n\n");
@@ -498,7 +498,7 @@ _Bool demander_txt (char titre[], char explications[], char input[], int max, SD
 /* Paramètres:	- titre = titre de la fenêtre (maximum 200 caractères)
 				- explications = texte expliquant à l'utilisateur ce qu'il doit écrire
 				- input = string où sera enregistré l'input de l'utilisateur
-				- max = taille maximale de la string input (devrait donc toujours être "sizeof(input)")
+				- max = taille maximale de la string input (devrait donc toujours être "sizeof(input)") (obligatoirement > 1!)
 				- fenetre_source = ptr vers la structure SDL_Window de la fenêtre à partir de laquelle est appelée cette fonction */
 {
 	SDL_Window* fenetre_d;
@@ -649,7 +649,7 @@ _Bool demander_txt (char titre[], char explications[], char input[], int max, SD
 		
 		case SDL_TEXTINPUT:
 			focus = 'i';
-			if (strlen(input) < max - 1)
+			if (strlen(input) < (unsigned) max - 1)
 			{strcat(input, ev.text.text);}
 			break;
 		}
