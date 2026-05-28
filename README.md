@@ -10,9 +10,11 @@ par Nicolas Audette
 - Sur un autre système, construisez manuellement le programme.
 
 ## Construction manuelle
-Vous devriez pouvoir compiler le programme avec la commande `gcc minesweeper.c -o Minesweeper -lSDL2 -lSDL_image -lSDL_ttf -lm` sur à peu près n'importe quel système Linux (et autres).
+Vous pouvez construire le programme vous-même avec `make` sur à peu près n'importe quel système Unix-based (Linux, macOS, BSD, etc.).
 
-Assurez-vous d'avoir d'abord installé les dépendances `libsdl2-dev`, `libsdl2-image-dev` et `libsdl2-ttf-dev`.
+Tapez `make release-linux` pour construire une release pour un système Unix-based ou `make release-windows` pour construire une release pour un système Windows (mais vous devrez quand même compiler sur un système Unix-based ou cygwin).
+
+Assurez-vous d'avoir d'abord installé les dépendances `libsdl2-dev`, `libsdl2-image-dev` et `libsdl2-ttf-dev`. Vous aurez aussi besoin d'un compilateur gcc pour les releases Linux et d'un compilateur mingw32 pour les releases Windows.
 
 ## Usage
 Vous pouvez utiliser autant la souris que le clavier dans ce jeu.
